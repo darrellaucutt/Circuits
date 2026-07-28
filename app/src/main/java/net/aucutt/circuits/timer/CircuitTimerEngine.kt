@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import net.aucutt.circuits.ui.timer.TimerConfig
 import net.aucutt.circuits.ui.timer.TimerPhase
 import net.aucutt.circuits.ui.timer.TimerUiState
 import kotlin.time.Duration.Companion.milliseconds
@@ -46,6 +47,19 @@ object CircuitTimerEngine {
     fun updateRepeats(count: Int) {
         if (_uiState.value.phase != TimerPhase.Idle) return
         _uiState.update { it.copy(config = it.config.withRepeats(count)) }
+    }
+
+    fun applyConfig(config: TimerConfig) {
+        if (_uiState.value.phase != TimerPhase.Idle) return
+        _uiState.update {
+            it.copy(
+                config = TimerConfig(
+                    intervalMinutes = config.intervalMinutes.coerceAtLeast(1),
+                    cooldownMinutes = config.cooldownMinutes.coerceAtLeast(0),
+                    repeats = config.repeats.coerceAtLeast(1),
+                ),
+            )
+        }
     }
 
     fun start() {

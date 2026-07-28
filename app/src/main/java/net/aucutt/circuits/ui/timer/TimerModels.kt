@@ -29,7 +29,4 @@ data class TimerUiState(
 ) {
     val isRunning: Boolean
         get() = phase == TimerPhase.Work || phase == TimerPhase.Cooldown
-
-    val isActiveSession: Boolean
-        get() = phase != TimerPhase.Idle
 }

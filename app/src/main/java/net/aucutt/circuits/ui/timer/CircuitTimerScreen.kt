@@ -3,9 +3,9 @@ package net.aucutt.circuits.ui.timer
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Build
-import android.view.WindowManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -13,21 +13,30 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -38,6 +47,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import net.aucutt.circuits.R
+import net.aucutt.circuits.data.CircuitEntity
 import net.aucutt.circuits.ui.theme.CircuitsTheme
 
 @Composable
@@ -45,13 +55,18 @@ fun CircuitTimerScreen(
     viewModel: CircuitTimerViewModel = viewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val savedCircuits by viewModel.savedCircuits.collectAsStateWithLifecycle()
+    val isDirty by viewModel.isDirty.collectAsStateWithLifecycle()
+    val loadedName by viewModel.loadedName.collectAsStateWithLifecycle()
     val context = LocalContext.current
-    KeepScreenOn(enabled = uiState.isRunning && !uiState.isPaused)
+
+    var showSaveDialog by rememberSaveable { mutableStateOf(false) }
+    var showLoadDialog by rememberSaveable { mutableStateOf(false) }
 
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
     ) {
-         viewModel.start()
+        viewModel.start()
     }
 
     fun startCircuit() {
@@ -70,16 +85,20 @@ fun CircuitTimerScreen(
 
     Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
         when (uiState.phase) {
-            TimerPhase.Idle -> SetupContent(
+            TimerPhase.Idle -> SetupWorkout(
                 config = uiState.config,
+                canSave = isDirty || loadedName.isEmpty(),
+                canLoad = savedCircuits.isNotEmpty(),
                 onIntervalChange = viewModel::updateInterval,
                 onCooldownChange = viewModel::updateCooldown,
                 onRepeatsChange = viewModel::updateRepeats,
                 onStart = ::startCircuit,
+                onLoad = { showLoadDialog = true },
+                onSave = { showSaveDialog = true },
                 modifier = Modifier.padding(innerPadding),
             )
 
-            TimerPhase.Work, TimerPhase.Cooldown -> ActiveContent(
+            TimerPhase.Work, TimerPhase.Cooldown -> StartWorkout(
                 uiState = uiState,
                 onPause = viewModel::pause,
                 onResume = viewModel::resume,
@@ -87,50 +106,54 @@ fun CircuitTimerScreen(
                 modifier = Modifier.padding(innerPadding),
             )
 
-            TimerPhase.Finished -> FinishedContent(
+            TimerPhase.Finished -> CompleteWorkout(
                 repeats = uiState.config.repeats,
                 onAgain = viewModel::resetToSetup,
                 modifier = Modifier.padding(innerPadding),
             )
         }
     }
-}
 
-@Composable
-private fun KeepScreenOn(enabled: Boolean) {
-    val view = LocalView.current
-    DisposableEffect(enabled) {
-        val window = view.context.findActivityWindow()
-        if (enabled && window != null) {
-            window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        }
-        onDispose {
-            window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        }
+    if (showSaveDialog) {
+        SaveCircuitDialog(
+            initialName = loadedName,
+            onDismiss = { showSaveDialog = false },
+            onConfirm = { name ->
+                viewModel.saveCircuit(name)
+                showSaveDialog = false
+            },
+        )
+    }
+
+    if (showLoadDialog) {
+        LoadCircuitDialog(
+            circuits = savedCircuits,
+            onDismiss = { showLoadDialog = false },
+            onSelect = { circuit ->
+                viewModel.loadCircuit(circuit)
+                showLoadDialog = false
+            },
+        )
     }
 }
 
-private fun android.content.Context.findActivityWindow(): android.view.Window? {
-    var context = this
-    while (context is android.content.ContextWrapper) {
-        if (context is android.app.Activity) return context.window
-        context = context.baseContext
-    }
-    return null
-}
-
 @Composable
-private fun SetupContent(
+private fun SetupWorkout(
     config: TimerConfig,
+    canSave: Boolean,
+    canLoad: Boolean,
     onIntervalChange: (Int) -> Unit,
     onCooldownChange: (Int) -> Unit,
     onRepeatsChange: (Int) -> Unit,
     onStart: () -> Unit,
+    onLoad: () -> Unit,
+    onSave: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
         modifier = modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(horizontal = 24.dp, vertical = 32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(24.dp, Alignment.CenterVertically),
@@ -182,7 +205,112 @@ private fun SetupContent(
         ) {
             Text(stringResource(R.string.action_start))
         }
+
+        OutlinedButton(
+            onClick = onLoad,
+            enabled = canLoad,
+            modifier = Modifier
+                .fillMaxWidth()
+                .widthIn(max = 360.dp),
+        ) {
+            Text(stringResource(R.string.action_load))
+        }
+
+        FilledTonalButton(
+            onClick = onSave,
+            enabled = canSave,
+            modifier = Modifier
+                .fillMaxWidth()
+                .widthIn(max = 360.dp),
+        ) {
+            Text(stringResource(R.string.action_save))
+        }
     }
+}
+
+@Composable
+private fun SaveCircuitDialog(
+    initialName: String,
+    onDismiss: () -> Unit,
+    onConfirm: (String) -> Unit,
+) {
+    var name by rememberSaveable(initialName) { mutableStateOf(initialName) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.save_dialog_title)) },
+        text = {
+            OutlinedTextField(
+                value = name,
+                onValueChange = { name = it },
+                label = { Text(stringResource(R.string.save_dialog_name_label)) },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { onConfirm(name) },
+                enabled = name.isNotBlank(),
+            ) {
+                Text(stringResource(R.string.save_dialog_confirm))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.action_cancel))
+            }
+        },
+    )
+}
+
+@Composable
+private fun LoadCircuitDialog(
+    circuits: List<CircuitEntity>,
+    onDismiss: () -> Unit,
+    onSelect: (CircuitEntity) -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.load_dialog_title)) },
+        text = {
+            if (circuits.isEmpty()) {
+                Text(stringResource(R.string.load_dialog_empty))
+            } else {
+                LazyColumn(modifier = Modifier.heightIn(max = 320.dp)) {
+                    items(circuits, key = { it.id }) { circuit ->
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onSelect(circuit) }
+                                .padding(vertical = 12.dp),
+                        ) {
+                            Text(
+                                text = circuit.name,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                            Text(
+                                text = stringResource(
+                                    R.string.circuit_summary,
+                                    circuit.intervalMinutes,
+                                    circuit.cooldownMinutes,
+                                    circuit.repeats,
+                                ),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.action_cancel))
+            }
+        },
+    )
 }
 
 @Composable
@@ -235,7 +363,7 @@ private fun NumberStepper(
 }
 
 @Composable
-private fun ActiveContent(
+private fun StartWorkout(
     uiState: TimerUiState,
     onPause: () -> Unit,
     onResume: () -> Unit,
@@ -319,7 +447,7 @@ private fun ActiveContent(
 }
 
 @Composable
-private fun FinishedContent(
+private fun CompleteWorkout(
     repeats: Int,
     onAgain: () -> Unit,
     modifier: Modifier = Modifier,
@@ -363,12 +491,16 @@ private fun formatTime(totalSeconds: Int): String {
 @Composable
 private fun SetupPreview() {
     CircuitsTheme {
-        SetupContent(
+        SetupWorkout(
             config = TimerConfig(),
+            canSave = true,
+            canLoad = true,
             onIntervalChange = {},
             onCooldownChange = {},
             onRepeatsChange = {},
             onStart = {},
+            onLoad = {},
+            onSave = {},
         )
     }
 }
@@ -377,7 +509,7 @@ private fun SetupPreview() {
 @Composable
 private fun ActivePreview() {
     CircuitsTheme {
-        ActiveContent(
+        StartWorkout(
             uiState = TimerUiState(
                 config = TimerConfig(),
                 phase = TimerPhase.Work,
