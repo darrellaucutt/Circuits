@@ -7,7 +7,10 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.content.MediaType.Companion.Image
 import androidx.compose.foundation.layout.Arrangement
@@ -20,6 +23,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -29,23 +33,28 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -63,8 +72,16 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import net.aucutt.circuits.R
 import net.aucutt.circuits.data.CircuitEntity
+import net.aucutt.circuits.ui.theme.BannerCharcoal
 import net.aucutt.circuits.ui.theme.BannerBlack
 import net.aucutt.circuits.ui.theme.CircuitsTheme
+import net.aucutt.circuits.ui.theme.CircuitCyan
+import net.aucutt.circuits.ui.theme.CircuitCyanBright
+import net.aucutt.circuits.ui.theme.RobotSilver
+import net.aucutt.circuits.ui.theme.RobotSilverDark
+import net.aucutt.circuits.ui.theme.RobotSilverLight
+import net.aucutt.circuits.ui.theme.RunnerOrange
+import net.aucutt.circuits.ui.theme.RunnerOrangeBright
 
 private enum class IdleDestination {
     Setup,
@@ -112,77 +129,62 @@ fun CircuitTimerScreen(
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
-        containerColor = BannerBlack,
+        containerColor = Color.Transparent,
     ) { innerPadding ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(BannerBlack)
                 .padding(innerPadding),
         ) {
-            Box(modifier = Modifier.fillMaxWidth()) {
-                Image(
-                    painter = painterResource(R.drawable.banner_running_robot),
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(200.dp),
-                )
-                Box(
-                    modifier = Modifier
-                        .matchParentSize()
-                        .background(
-                            Brush.verticalGradient(
-                                colorStops = arrayOf(
-                                    0f to Color.Transparent,
-                                    0.6f to Color.Transparent,
-                                    1f to BannerBlack,
-                                ),
-                            ),
-                        ),
-                )
-            }
+            BannerBackground()
 
-            when (uiState.phase) {
-                TimerPhase.Idle -> when (idleDestination) {
-                    IdleDestination.Setup -> SetupWorkout(
-                        config = uiState.config,
-                        canSave = isDirty || loadedName.isEmpty(),
-                        canLoad = savedCircuits.isNotEmpty(),
-                        onIntervalChange = viewModel::updateInterval,
-                        onCooldownChange = viewModel::updateCooldown,
-                        onRepeatsChange = viewModel::updateRepeats,
-                        onStart = ::startCircuit,
-                        onLoad = { idleDestination = IdleDestination.LoadCircuit },
-                        onSave = { showSaveDialog = true },
-                        modifier = Modifier.weight(1f),
-                    )
+            CompositionLocalProvider(LocalContentColor provides RunnerOrangeBright) {
+                Column(modifier = Modifier.fillMaxSize()) {
+                    if (uiState.phase == TimerPhase.Idle && idleDestination == IdleDestination.Setup) {
+                        Spacer(modifier = Modifier.height(160.dp))
+                    }
 
-                    IdleDestination.LoadCircuit -> SavedCircuitsScreen(
-                        circuits = savedCircuits,
-                        onBack = { idleDestination = IdleDestination.Setup },
-                        onSelect = { circuit ->
-                            viewModel.loadCircuit(circuit)
-                            idleDestination = IdleDestination.Setup
-                        },
-                        modifier = Modifier.weight(1f),
-                    )
+                    when (uiState.phase) {
+                        TimerPhase.Idle -> when (idleDestination) {
+                            IdleDestination.Setup -> SetupWorkout(
+                                config = uiState.config,
+                                canSave = isDirty || loadedName.isEmpty(),
+                                canLoad = savedCircuits.isNotEmpty(),
+                                onIntervalChange = viewModel::updateInterval,
+                                onCooldownChange = viewModel::updateCooldown,
+                                onRepeatsChange = viewModel::updateRepeats,
+                                onStart = ::startCircuit,
+                                onLoad = { idleDestination = IdleDestination.LoadCircuit },
+                                onSave = { showSaveDialog = true },
+                                modifier = Modifier.weight(1f),
+                            )
+
+                            IdleDestination.LoadCircuit -> SavedCircuitsScreen(
+                                circuits = savedCircuits,
+                                onBack = { idleDestination = IdleDestination.Setup },
+                                onSelect = { circuit ->
+                                    viewModel.loadCircuit(circuit)
+                                    idleDestination = IdleDestination.Setup
+                                },
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
+
+                        TimerPhase.Work, TimerPhase.Cooldown -> StartWorkout(
+                            uiState = uiState,
+                            onPause = viewModel::pause,
+                            onResume = viewModel::resume,
+                            onStop = viewModel::stop,
+                            modifier = Modifier.weight(1f),
+                        )
+
+                        TimerPhase.Finished -> CompleteWorkout(
+                            repeats = uiState.config.repeats,
+                            onAgain = viewModel::resetToSetup,
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
                 }
-
-                TimerPhase.Work, TimerPhase.Cooldown -> StartWorkout(
-                    uiState = uiState,
-                    onPause = viewModel::pause,
-                    onResume = viewModel::resume,
-                    onStop = viewModel::stop,
-                    modifier = Modifier.weight(1f),
-                )
-
-                TimerPhase.Finished -> CompleteWorkout(
-                    repeats = uiState.config.repeats,
-                    onAgain = viewModel::resetToSetup,
-                    modifier = Modifier.weight(1f),
-                )
             }
         }
     }
@@ -195,6 +197,33 @@ fun CircuitTimerScreen(
                 viewModel.saveCircuit(name)
                 showSaveDialog = false
             },
+        )
+    }
+}
+
+@Composable
+private fun BannerBackground(modifier: Modifier = Modifier) {
+    Box(modifier = modifier.fillMaxSize()) {
+        Image(
+            painter = painterResource(R.drawable.banner_running_robot),
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            alignment = Alignment.TopCenter,
+            modifier = Modifier.fillMaxSize(),
+        )
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        colorStops = arrayOf(
+                            0f to Color.Transparent,
+                            0.32f to Color.Transparent,
+                            0.55f to BannerBlack.copy(alpha = 0.35f),
+                            1f to BannerBlack.copy(alpha = 0.55f),
+                        ),
+                    ),
+                ),
         )
     }
 }
@@ -216,19 +245,18 @@ private fun SetupWorkout(
         modifier = modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 24.dp, vertical = 32.dp),
+            .padding(horizontal = 24.dp, vertical = 12.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(24.dp, Alignment.CenterVertically),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Text(
             text = stringResource(R.string.app_name),
-            style = MaterialTheme.typography.headlineMedium,
+            style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
         )
         Text(
             text = stringResource(R.string.setup_subtitle),
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = MaterialTheme.typography.bodyMedium,
             textAlign = TextAlign.Center,
         )
 
@@ -257,13 +285,17 @@ private fun SetupWorkout(
             canDecrement = config.repeats > 1,
         )
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(4.dp))
 
         Button(
             onClick = onStart,
             modifier = Modifier
                 .fillMaxWidth()
                 .widthIn(max = 360.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = CircuitCyan,
+                contentColor = BannerBlack,
+            ),
         ) {
             Text(stringResource(R.string.action_start))
         }
@@ -274,6 +306,14 @@ private fun SetupWorkout(
             modifier = Modifier
                 .fillMaxWidth()
                 .widthIn(max = 360.dp),
+            colors = ButtonDefaults.outlinedButtonColors(
+                contentColor = RunnerOrangeBright,
+                disabledContentColor = RobotSilverDark,
+            ),
+            border = BorderStroke(
+                1.5.dp,
+                if (canLoad) RunnerOrangeBright else RobotSilverDark,
+            ),
         ) {
             Text(stringResource(R.string.action_load))
         }
@@ -284,6 +324,12 @@ private fun SetupWorkout(
             modifier = Modifier
                 .fillMaxWidth()
                 .widthIn(max = 360.dp),
+            colors = ButtonDefaults.filledTonalButtonColors(
+                containerColor = RunnerOrange.copy(alpha = 0.35f),
+                contentColor = RunnerOrangeBright,
+                disabledContainerColor = BannerBlack.copy(alpha = 0.5f),
+                disabledContentColor = RobotSilverDark,
+            ),
         ) {
             Text(stringResource(R.string.action_save))
         }
@@ -302,6 +348,8 @@ private fun SavedCircuitsScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
+            .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
+            .background(BannerBlack.copy(alpha = 0.88f))
             .padding(horizontal = 24.dp, vertical = 16.dp),
     ) {
         IconButton(
@@ -325,7 +373,6 @@ private fun SavedCircuitsScreen(
             Text(
                 text = stringResource(R.string.load_screen_empty),
                 style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 24.dp),
             )
         } else {
@@ -353,11 +400,10 @@ private fun SavedCircuitsScreen(
                                 circuit.repeats,
                             ),
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(top = 4.dp),
                         )
                     }
-                    HorizontalDivider()
+                    HorizontalDivider(color = CircuitCyan.copy(alpha = 0.3f))
                 }
             }
         }
@@ -370,10 +416,14 @@ private fun SaveCircuitDialog(
     onDismiss: () -> Unit,
     onConfirm: (String) -> Unit,
 ) {
-    var name by rememberSaveable(initialName) { mutableStateOf(initialName) }
+    var name by rememberSaveable { mutableStateOf(initialName) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
+        containerColor = BannerCharcoal,
+        titleContentColor = RunnerOrangeBright,
+        textContentColor = RobotSilverLight,
+        iconContentColor = RunnerOrangeBright,
         title = { Text(stringResource(R.string.save_dialog_title)) },
         text = {
             OutlinedTextField(
@@ -382,18 +432,31 @@ private fun SaveCircuitDialog(
                 label = { Text(stringResource(R.string.save_dialog_name_label)) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedTextColor = RobotSilverLight,
+                    unfocusedTextColor = RobotSilverLight,
+                    focusedLabelColor = CircuitCyanBright,
+                    unfocusedLabelColor = RobotSilver,
+                    cursorColor = CircuitCyan,
+                    focusedBorderColor = CircuitCyan,
+                    unfocusedBorderColor = RobotSilverDark,
+                ),
             )
         },
         confirmButton = {
             TextButton(
                 onClick = { onConfirm(name) },
                 enabled = name.isNotBlank(),
+                colors = ButtonDefaults.textButtonColors(contentColor = CircuitCyanBright),
             ) {
                 Text(stringResource(R.string.save_dialog_confirm))
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
+            TextButton(
+                onClick = onDismiss,
+                colors = ButtonDefaults.textButtonColors(contentColor = RobotSilverLight),
+            ) {
                 Text(stringResource(R.string.action_cancel))
             }
         },
@@ -410,40 +473,73 @@ private fun NumberStepper(
     canDecrement: Boolean,
     modifier: Modifier = Modifier,
 ) {
+    val stepperShape = RoundedCornerShape(10.dp)
+    val buttonShape = RoundedCornerShape(8.dp)
+    val stepperButtonColors = ButtonDefaults.buttonColors(
+        containerColor = CircuitCyan,
+        contentColor = BannerBlack,
+        disabledContainerColor = BannerBlack.copy(alpha = 0.6f),
+        disabledContentColor = RobotSilverDark,
+    )
+
     Column(
         modifier = modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         Text(
             text = label,
             style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontWeight = FontWeight.SemiBold,
+            color = RunnerOrangeBright,
         )
         Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .widthIn(max = 320.dp)
+                .clip(stepperShape)
+                .background(BannerBlack.copy(alpha = 0.82f))
+                .border(1.dp, CircuitCyan.copy(alpha = 0.7f), stepperShape)
+                .padding(horizontal = 8.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
         ) {
-            OutlinedButton(
+            Button(
                 onClick = onDecrement,
                 enabled = canDecrement,
+                shape = buttonShape,
+                colors = stepperButtonColors,
+                contentPadding = PaddingValues(0.dp),
+                modifier = Modifier.size(36.dp),
             ) {
-                Text("−", fontSize = 22.sp)
+                Text("−", fontSize = 18.sp, fontWeight = FontWeight.Bold)
             }
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Row(
+                verticalAlignment = Alignment.Bottom,
+                horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterHorizontally),
+                modifier = Modifier.padding(horizontal = 8.dp),
+            ) {
                 Text(
                     text = value.toString(),
-                    style = MaterialTheme.typography.displaySmall,
-                    fontWeight = FontWeight.SemiBold,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = CircuitCyanBright,
                 )
                 Text(
                     text = unit,
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = RobotSilverLight,
+                    modifier = Modifier.padding(bottom = 2.dp),
                 )
             }
-            OutlinedButton(onClick = onIncrement) {
-                Text("+", fontSize = 22.sp)
+            Button(
+                onClick = onIncrement,
+                shape = buttonShape,
+                colors = stepperButtonColors,
+                contentPadding = PaddingValues(0.dp),
+                modifier = Modifier.size(36.dp),
+            ) {
+                Text("+", fontSize = 18.sp, fontWeight = FontWeight.Bold)
             }
         }
     }
@@ -473,11 +569,6 @@ private fun StartWorkout(
         Text(
             text = phaseLabel,
             style = MaterialTheme.typography.headlineMedium,
-            color = if (uiState.phase == TimerPhase.Work) {
-                MaterialTheme.colorScheme.primary
-            } else {
-                MaterialTheme.colorScheme.tertiary
-            },
             fontWeight = FontWeight.Bold,
         )
         Text(
@@ -487,7 +578,6 @@ private fun StartWorkout(
                 uiState.config.repeats,
             ),
             style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Text(
             text = formatTime(uiState.remainingSeconds),
@@ -498,7 +588,6 @@ private fun StartWorkout(
             Text(
                 text = stringResource(R.string.status_paused),
                 style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
 
@@ -554,7 +643,6 @@ private fun CompleteWorkout(
         Text(
             text = stringResource(R.string.finished_subtitle, repeats),
             style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Spacer(modifier = Modifier.height(8.dp))
         Button(

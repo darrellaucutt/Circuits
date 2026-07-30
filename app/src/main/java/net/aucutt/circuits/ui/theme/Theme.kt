@@ -66,6 +66,7 @@ fun CircuitsTheme(
     dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
+    //val colorScheme = DarkColorScheme
     val colorScheme = when {
         dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
             val context = LocalContext.current
