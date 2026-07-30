@@ -11,11 +11,12 @@
     <string name="action_load">Load a circuit</string>
     <string name="action_save">Save a circuit</string>
     <string name="action_cancel">Cancel</string>
+    <string name="action_back">Back</string>
     <string name="save_dialog_title">Save circuit</string>
     <string name="save_dialog_name_label">Name</string>
     <string name="save_dialog_confirm">Save</string>
-    <string name="load_dialog_title">Load circuit</string>
-    <string name="load_dialog_empty">No saved circuits yet.</string>
+    <string name="load_screen_title">Saved circuits</string>
+    <string name="load_screen_empty">No saved circuits yet.</string>
     <string name="circuit_summary">%1$d min work · %2$d min cooldown · %3$d repeats</string>
     <string name="phase_work">Work</string>
     <string name="phase_cooldown">Cooldown</string>

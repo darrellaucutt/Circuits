@@ -3,26 +3,36 @@ package net.aucutt.circuits.ui.timer
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Build
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.content.MediaType.Companion.Image
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -30,13 +40,18 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -48,7 +63,13 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import net.aucutt.circuits.R
 import net.aucutt.circuits.data.CircuitEntity
+import net.aucutt.circuits.ui.theme.BannerBlack
 import net.aucutt.circuits.ui.theme.CircuitsTheme
+
+private enum class IdleDestination {
+    Setup,
+    LoadCircuit,
+}
 
 @Composable
 fun CircuitTimerScreen(
@@ -61,7 +82,13 @@ fun CircuitTimerScreen(
     val context = LocalContext.current
 
     var showSaveDialog by rememberSaveable { mutableStateOf(false) }
-    var showLoadDialog by rememberSaveable { mutableStateOf(false) }
+    var idleDestination by rememberSaveable { mutableStateOf(IdleDestination.Setup) }
+
+    LaunchedEffect(uiState.phase) {
+        if (uiState.phase != TimerPhase.Idle) {
+            idleDestination = IdleDestination.Setup
+        }
+    }
 
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
@@ -83,34 +110,80 @@ fun CircuitTimerScreen(
         viewModel.start()
     }
 
-    Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-        when (uiState.phase) {
-            TimerPhase.Idle -> SetupWorkout(
-                config = uiState.config,
-                canSave = isDirty || loadedName.isEmpty(),
-                canLoad = savedCircuits.isNotEmpty(),
-                onIntervalChange = viewModel::updateInterval,
-                onCooldownChange = viewModel::updateCooldown,
-                onRepeatsChange = viewModel::updateRepeats,
-                onStart = ::startCircuit,
-                onLoad = { showLoadDialog = true },
-                onSave = { showSaveDialog = true },
-                modifier = Modifier.padding(innerPadding),
-            )
+    Scaffold(
+        modifier = Modifier.fillMaxSize(),
+        containerColor = BannerBlack,
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(BannerBlack)
+                .padding(innerPadding),
+        ) {
+            Box(modifier = Modifier.fillMaxWidth()) {
+                Image(
+                    painter = painterResource(R.drawable.banner_running_robot),
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(200.dp),
+                )
+                Box(
+                    modifier = Modifier
+                        .matchParentSize()
+                        .background(
+                            Brush.verticalGradient(
+                                colorStops = arrayOf(
+                                    0f to Color.Transparent,
+                                    0.6f to Color.Transparent,
+                                    1f to BannerBlack,
+                                ),
+                            ),
+                        ),
+                )
+            }
 
-            TimerPhase.Work, TimerPhase.Cooldown -> StartWorkout(
-                uiState = uiState,
-                onPause = viewModel::pause,
-                onResume = viewModel::resume,
-                onStop = viewModel::stop,
-                modifier = Modifier.padding(innerPadding),
-            )
+            when (uiState.phase) {
+                TimerPhase.Idle -> when (idleDestination) {
+                    IdleDestination.Setup -> SetupWorkout(
+                        config = uiState.config,
+                        canSave = isDirty || loadedName.isEmpty(),
+                        canLoad = savedCircuits.isNotEmpty(),
+                        onIntervalChange = viewModel::updateInterval,
+                        onCooldownChange = viewModel::updateCooldown,
+                        onRepeatsChange = viewModel::updateRepeats,
+                        onStart = ::startCircuit,
+                        onLoad = { idleDestination = IdleDestination.LoadCircuit },
+                        onSave = { showSaveDialog = true },
+                        modifier = Modifier.weight(1f),
+                    )
 
-            TimerPhase.Finished -> CompleteWorkout(
-                repeats = uiState.config.repeats,
-                onAgain = viewModel::resetToSetup,
-                modifier = Modifier.padding(innerPadding),
-            )
+                    IdleDestination.LoadCircuit -> SavedCircuitsScreen(
+                        circuits = savedCircuits,
+                        onBack = { idleDestination = IdleDestination.Setup },
+                        onSelect = { circuit ->
+                            viewModel.loadCircuit(circuit)
+                            idleDestination = IdleDestination.Setup
+                        },
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+
+                TimerPhase.Work, TimerPhase.Cooldown -> StartWorkout(
+                    uiState = uiState,
+                    onPause = viewModel::pause,
+                    onResume = viewModel::resume,
+                    onStop = viewModel::stop,
+                    modifier = Modifier.weight(1f),
+                )
+
+                TimerPhase.Finished -> CompleteWorkout(
+                    repeats = uiState.config.repeats,
+                    onAgain = viewModel::resetToSetup,
+                    modifier = Modifier.weight(1f),
+                )
+            }
         }
     }
 
@@ -121,17 +194,6 @@ fun CircuitTimerScreen(
             onConfirm = { name ->
                 viewModel.saveCircuit(name)
                 showSaveDialog = false
-            },
-        )
-    }
-
-    if (showLoadDialog) {
-        LoadCircuitDialog(
-            circuits = savedCircuits,
-            onDismiss = { showLoadDialog = false },
-            onSelect = { circuit ->
-                viewModel.loadCircuit(circuit)
-                showLoadDialog = false
             },
         )
     }
@@ -229,6 +291,80 @@ private fun SetupWorkout(
 }
 
 @Composable
+private fun SavedCircuitsScreen(
+    circuits: List<CircuitEntity>,
+    onBack: () -> Unit,
+    onSelect: (CircuitEntity) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    BackHandler(onBack = onBack)
+
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(horizontal = 24.dp, vertical = 16.dp),
+    ) {
+        IconButton(
+            onClick = onBack,
+            modifier = Modifier.align(Alignment.Start),
+        ) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+                contentDescription = stringResource(R.string.action_back),
+            )
+        }
+
+        Text(
+            text = stringResource(R.string.load_screen_title),
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(top = 8.dp, bottom = 16.dp),
+        )
+
+        if (circuits.isEmpty()) {
+            Text(
+                text = stringResource(R.string.load_screen_empty),
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 24.dp),
+            )
+        } else {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(bottom = 24.dp),
+            ) {
+                items(circuits, key = { it.id }) { circuit ->
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onSelect(circuit) }
+                            .padding(vertical = 16.dp),
+                    ) {
+                        Text(
+                            text = circuit.name,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                        Text(
+                            text = stringResource(
+                                R.string.circuit_summary,
+                                circuit.intervalMinutes,
+                                circuit.cooldownMinutes,
+                                circuit.repeats,
+                            ),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(top = 4.dp),
+                        )
+                    }
+                    HorizontalDivider()
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun SaveCircuitDialog(
     initialName: String,
     onDismiss: () -> Unit,
@@ -257,55 +393,6 @@ private fun SaveCircuitDialog(
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.action_cancel))
-            }
-        },
-    )
-}
-
-@Composable
-private fun LoadCircuitDialog(
-    circuits: List<CircuitEntity>,
-    onDismiss: () -> Unit,
-    onSelect: (CircuitEntity) -> Unit,
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.load_dialog_title)) },
-        text = {
-            if (circuits.isEmpty()) {
-                Text(stringResource(R.string.load_dialog_empty))
-            } else {
-                LazyColumn(modifier = Modifier.heightIn(max = 320.dp)) {
-                    items(circuits, key = { it.id }) { circuit ->
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { onSelect(circuit) }
-                                .padding(vertical = 12.dp),
-                        ) {
-                            Text(
-                                text = circuit.name,
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold,
-                            )
-                            Text(
-                                text = stringResource(
-                                    R.string.circuit_summary,
-                                    circuit.intervalMinutes,
-                                    circuit.cooldownMinutes,
-                                    circuit.repeats,
-                                ),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                    }
-                }
-            }
-        },
-        confirmButton = {
             TextButton(onClick = onDismiss) {
                 Text(stringResource(R.string.action_cancel))
             }
@@ -501,6 +588,33 @@ private fun SetupPreview() {
             onStart = {},
             onLoad = {},
             onSave = {},
+        )
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun SavedCircuitsPreview() {
+    CircuitsTheme {
+        SavedCircuitsScreen(
+            circuits = listOf(
+                CircuitEntity(
+                    id = 1,
+                    name = "Morning HIIT",
+                    intervalMinutes = 1,
+                    cooldownMinutes = 1,
+                    repeats = 8,
+                ),
+                CircuitEntity(
+                    id = 2,
+                    name = "Quick core",
+                    intervalMinutes = 2,
+                    cooldownMinutes = 0,
+                    repeats = 4,
+                ),
+            ),
+            onBack = {},
+            onSelect = {},
         )
     }
 }
