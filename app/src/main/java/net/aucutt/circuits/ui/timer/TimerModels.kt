@@ -15,6 +15,7 @@ data class TimerConfig(
 
 enum class TimerPhase {
     Idle,
+    PreWorkout,
     Work,
     Cooldown,
     Finished,
@@ -28,5 +29,7 @@ data class TimerUiState(
     val isPaused: Boolean = false,
 ) {
     val isRunning: Boolean
-        get() = phase == TimerPhase.Work || phase == TimerPhase.Cooldown
+        get() = phase == TimerPhase.PreWorkout ||
+            phase == TimerPhase.Work ||
+            phase == TimerPhase.Cooldown
 }

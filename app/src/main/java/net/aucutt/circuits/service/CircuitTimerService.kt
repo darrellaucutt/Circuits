@@ -104,23 +104,36 @@ class CircuitTimerService : Service() {
                                 stopForegroundAndSelf()
                             }
                         }
-                        TimerPhase.Work, TimerPhase.Cooldown -> updateNotification(state)
+                        TimerPhase.PreWorkout, TimerPhase.Work, TimerPhase.Cooldown -> updateNotification(state)
                     }
                 }
             }
             launch {
                 CircuitTimerEngine.announcements.collect { announcement ->
                     val text = when (announcement) {
+                        TimerAnnouncement.PreWorkout ->
+                            getString(R.string.tts_pre_workout)
                         is TimerAnnouncement.Work ->
                             getString(R.string.tts_work_round, announcement.round)
-                        TimerAnnouncement.Cooldown ->
-                            getString(R.string.tts_cooldown)
-                        TimerAnnouncement.Complete ->
-                            getString(R.string.tts_circuit_complete)
+                        TimerAnnouncement.Cooldown -> getString(R.string.tts_cooldown)
+                        TimerAnnouncement.Complete -> getRandomCompleteMessage()
                     }
                     ttsSpeaker?.speak(text)
                 }
             }
+        }
+    }
+
+    private fun getRandomCompleteMessage() : String {
+        //TODO make this more dynamic, read the number of platitudes from strings.xml
+        //maybe using an array
+        val rand = (0..4).random()
+        return when (rand)  {
+            0 -> getString(R.string.tts_circuit_complete_0)
+            1 -> getString(R.string.tts_circuit_complete_1)
+            2 -> getString(R.string.tts_circuit_complete_2)
+            3 -> getString(R.string.tts_circuit_complete_3)
+            else -> getString(R.string.tts_circuit_complete_4)
         }
     }
 
@@ -162,6 +175,14 @@ class CircuitTimerService : Service() {
         val title: String
         val text: String
         when (state.phase) {
+            TimerPhase.PreWorkout -> {
+                title = getString(R.string.notification_pre_workout_title)
+                text = getString(
+                    R.string.notification_pre_workout_text,
+                    formatTime(state.remainingSeconds),
+                )
+            }
+
             TimerPhase.Work -> {
                 title = getString(R.string.notification_work_title)
                 text = getString(

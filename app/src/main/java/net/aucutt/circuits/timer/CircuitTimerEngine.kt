@@ -25,6 +25,8 @@ import kotlin.time.Duration.Companion.milliseconds
  */
 object CircuitTimerEngine {
 
+    private const val PRE_WORKOUT_SECONDS = 30
+
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private var tickerJob: Job? = null
 
@@ -69,12 +71,12 @@ object CircuitTimerEngine {
         val config = state.config
         _uiState.value = TimerUiState(
             config = config,
-            phase = TimerPhase.Work,
-            remainingSeconds = config.intervalSeconds,
+            phase = TimerPhase.PreWorkout,
+            remainingSeconds = PRE_WORKOUT_SECONDS,
             currentRound = 1,
             isPaused = false,
         )
-        announceWork(1)
+        _announcements.tryEmit(TimerAnnouncement.PreWorkout)
         startTicker()
     }
 
@@ -128,6 +130,17 @@ object CircuitTimerEngine {
     private fun advancePhase(state: TimerUiState) {
         val config = state.config
         when (state.phase) {
+            TimerPhase.PreWorkout -> {
+                _uiState.update {
+                    it.copy(
+                        phase = TimerPhase.Work,
+                        remainingSeconds = config.intervalSeconds,
+                        currentRound = 1,
+                    )
+                }
+                announceWork(1)
+            }
+
             TimerPhase.Work -> {
                 if (config.cooldownSeconds > 0) {
                     _uiState.update {

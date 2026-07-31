@@ -169,7 +169,7 @@ fun CircuitTimerScreen(
                             )
                         }
 
-                        TimerPhase.Work, TimerPhase.Cooldown -> StartWorkout(
+                        TimerPhase.PreWorkout, TimerPhase.Work, TimerPhase.Cooldown -> StartWorkout(
                             uiState = uiState,
                             onPause = viewModel::pause,
                             onResume = viewModel::resume,
@@ -607,6 +607,7 @@ private fun StartWorkout(
     modifier: Modifier = Modifier,
 ) {
     val phaseLabel = when (uiState.phase) {
+        TimerPhase.PreWorkout -> stringResource(R.string.phase_pre_workout)
         TimerPhase.Work -> stringResource(R.string.phase_work)
         TimerPhase.Cooldown -> stringResource(R.string.phase_cooldown)
         else -> ""
@@ -624,14 +625,21 @@ private fun StartWorkout(
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
         )
-        Text(
-            text = stringResource(
-                R.string.round_progress,
-                uiState.currentRound,
-                uiState.config.repeats,
-            ),
-            style = MaterialTheme.typography.titleMedium,
-        )
+        if (uiState.phase == TimerPhase.PreWorkout) {
+            Text(
+                text = stringResource(R.string.pre_workout_subtitle),
+                style = MaterialTheme.typography.titleMedium,
+            )
+        } else {
+            Text(
+                text = stringResource(
+                    R.string.round_progress,
+                    uiState.currentRound,
+                    uiState.config.repeats,
+                ),
+                style = MaterialTheme.typography.titleMedium,
+            )
+        }
         Text(
             text = formatTime(uiState.remainingSeconds),
             style = MaterialTheme.typography.displayLarge.copy(fontSize = 72.sp),
