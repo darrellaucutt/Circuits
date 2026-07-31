@@ -17,7 +17,6 @@ import kotlinx.coroutines.launch
 import net.aucutt.circuits.ui.timer.TimerConfig
 import net.aucutt.circuits.ui.timer.TimerPhase
 import net.aucutt.circuits.ui.timer.TimerUiState
-import kotlin.time.Duration.Companion.milliseconds
 
 /**
  * Process-scoped timer engine so the countdown survives Activity backgrounding
@@ -27,7 +26,8 @@ object CircuitTimerEngine {
 
     private const val PRE_WORKOUT_SECONDS = 30
 
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    private val defaultScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    private var tickerScope: CoroutineScope = defaultScope
     private var tickerJob: Job? = null
 
     private val _uiState = MutableStateFlow(TimerUiState())
@@ -105,11 +105,28 @@ object CircuitTimerEngine {
         stop()
     }
 
+    /** Restores idle state and cancels the ticker. For unit tests only. */
+    internal fun resetForTests() {
+        tickerJob?.cancel()
+        tickerJob = null
+        _uiState.value = TimerUiState()
+    }
+
+    /** Overrides the coroutine scope used by the ticker. For unit tests only. */
+    internal fun setTickerScopeForTests(scope: CoroutineScope) {
+        tickerScope = scope
+    }
+
+    /** Restores the production ticker scope. For unit tests only. */
+    internal fun restoreDefaultTickerScopeForTests() {
+        tickerScope = defaultScope
+    }
+
     private fun startTicker() {
         tickerJob?.cancel()
-        tickerJob = scope.launch {
+        tickerJob = tickerScope.launch {
             while (isActive) {
-                delay(1_000.milliseconds)
+                delay(1_000)
                 tick()
             }
         }
