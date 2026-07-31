@@ -24,4 +24,7 @@ interface CircuitDao {
 
     @Delete
     suspend fun delete(circuit: CircuitEntity)
+
+    @Query("DELETE FROM circuits")
+    suspend fun deleteAll()
 }

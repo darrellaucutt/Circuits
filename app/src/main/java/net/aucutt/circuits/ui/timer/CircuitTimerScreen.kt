@@ -166,6 +166,7 @@ fun CircuitTimerScreen(
                                     viewModel.loadCircuit(circuit)
                                     idleDestination = IdleDestination.Setup
                                 },
+                                onDeleteAll = viewModel::deleteAllCircuits,
                                 modifier = Modifier.weight(1f),
                             )
                         }
@@ -251,7 +252,7 @@ private fun SetupWorkout(
     ) {
         Text(
             text = stringResource(R.string.app_name),
-            style = MaterialTheme.typography.titleLarge,
+            style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
         )
         Text(
@@ -341,9 +342,11 @@ private fun SavedCircuitsScreen(
     circuits: List<CircuitEntity>,
     onBack: () -> Unit,
     onSelect: (CircuitEntity) -> Unit,
+    onDeleteAll: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     BackHandler(onBack = onBack)
+    var showDeleteAllDialog by rememberSaveable { mutableStateOf(false) }
 
     Column(
         modifier = modifier
@@ -352,21 +355,32 @@ private fun SavedCircuitsScreen(
             .background(BannerBlack.copy(alpha = 0.88f))
             .padding(horizontal = 24.dp, vertical = 16.dp),
     ) {
-        IconButton(
-            onClick = onBack,
-            modifier = Modifier.align(Alignment.Start),
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
         ) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
-                contentDescription = stringResource(R.string.action_back),
-            )
+            IconButton(onClick = onBack) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+                    contentDescription = stringResource(R.string.action_back),
+                )
+            }
+            if (circuits.isNotEmpty()) {
+                TextButton(
+                    onClick = { showDeleteAllDialog = true },
+                    colors = ButtonDefaults.textButtonColors(contentColor = RunnerOrangeBright),
+                ) {
+                    Text(stringResource(R.string.action_delete_all))
+                }
+            }
         }
 
         Text(
             text = stringResource(R.string.load_screen_title),
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(top = 8.dp, bottom = 16.dp),
+            modifier = Modifier.padding(bottom = 16.dp),
         )
 
         if (circuits.isEmpty()) {
@@ -389,7 +403,7 @@ private fun SavedCircuitsScreen(
                     ) {
                         Text(
                             text = circuit.name,
-                            style = MaterialTheme.typography.titleMedium,
+                            style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.SemiBold,
                         )
                         Text(
@@ -408,6 +422,47 @@ private fun SavedCircuitsScreen(
             }
         }
     }
+
+    if (showDeleteAllDialog) {
+        DeleteAllCircuitsDialog(
+            onDismiss = { showDeleteAllDialog = false },
+            onConfirm = {
+                onDeleteAll()
+                showDeleteAllDialog = false
+            },
+        )
+    }
+}
+
+@Composable
+private fun DeleteAllCircuitsDialog(
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = BannerCharcoal,
+        titleContentColor = RunnerOrangeBright,
+        textContentColor = RobotSilverLight,
+        title = { Text(stringResource(R.string.delete_all_dialog_title)) },
+        text = { Text(stringResource(R.string.delete_all_dialog_message)) },
+        confirmButton = {
+            TextButton(
+                onClick = onConfirm,
+                colors = ButtonDefaults.textButtonColors(contentColor = RunnerOrangeBright),
+            ) {
+                Text(stringResource(R.string.delete_all_dialog_confirm))
+            }
+        },
+        dismissButton = {
+            TextButton(
+                onClick = onDismiss,
+                colors = ButtonDefaults.textButtonColors(contentColor = RobotSilverLight),
+            ) {
+                Text(stringResource(R.string.action_cancel))
+            }
+        },
+    )
 }
 
 @Composable
@@ -703,6 +758,7 @@ private fun SavedCircuitsPreview() {
             ),
             onBack = {},
             onSelect = {},
+            onDeleteAll = {},
         )
     }
 }

@@ -2,42 +2,25 @@ package net.aucutt.circuits.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Icon palette — athletic robot with exposed circuits and runner headband
-
-// Background & surfaces — matched to banner_running_robot.png
 val BannerBlack = Color(0xFF0A0A0A)
 val BannerCharcoal = Color(0xFF111111)
-val BannerSurface = Color(0xFF141414)
 val BannerSurfaceVariant = Color(0xFF1C1C1C)
-val BannerGlowCyan = Color(0xFF0A1520)
-val BannerGlowOrange = Color(0xFF1A0E08)
 
-// Circuit cyan — visor, circuit traces, teal glow
 val CircuitCyan = Color(0xFF00E5FF)
 val CircuitCyanBright = Color(0xFF4DF0FF)
 val CircuitCyanDim = Color(0xFF00BCD4)
 val CircuitTeal = Color(0xFF14B8A6)
-val CircuitTealGlow = Color(0xFF0D9488)
 
-// Runner orange — headband, pulse nodes, shoulder accents
 val RunnerOrange = Color(0xFFFF7043)
 val RunnerOrangeBright = Color(0xFFFF8C42)
-val RunnerOrangeDim = Color(0xFFE65100)
 val PulseOrange = Color(0xFFFF6B35)
 
-// Robot metal — silver plating
 val RobotSilver = Color(0xFFB0BEC5)
 val RobotSilverLight = Color(0xFFCFD8DC)
 val RobotSilverDark = Color(0xFF78909C)
 val RobotMetal = Color(0xFF90A4AE)
 
-// Interval training semantics
-val WorkInterval = RunnerOrange
-val RestInterval = CircuitCyan
-val HeartbeatPulse = PulseOrange
-val CircuitTrace = CircuitCyanDim
 
-// Material 3 — dark theme (primary app look)
 val PrimaryDark = CircuitCyan
 val OnPrimaryDark = BannerBlack
 val PrimaryContainerDark = Color(0xFF004D56)

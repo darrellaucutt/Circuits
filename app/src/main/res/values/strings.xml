@@ -17,6 +17,10 @@
     <string name="save_dialog_confirm">Save</string>
     <string name="load_screen_title">Saved circuits</string>
     <string name="load_screen_empty">No saved circuits yet.</string>
+    <string name="action_delete_all">Delete all</string>
+    <string name="delete_all_dialog_title">Delete all circuits?</string>
+    <string name="delete_all_dialog_message">This permanently removes every saved circuit.</string>
+    <string name="delete_all_dialog_confirm">Delete all</string>
     <string name="circuit_summary">%1$d min work · %2$d min cooldown · %3$d repeats</string>
     <string name="phase_work">Work</string>
     <string name="phase_cooldown">Cooldown</string>

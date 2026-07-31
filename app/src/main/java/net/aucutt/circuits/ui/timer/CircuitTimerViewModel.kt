@@ -73,6 +73,15 @@ class CircuitTimerViewModel(application: Application) : AndroidViewModel(applica
         markClean(circuit.toConfig(), circuit.name)
     }
 
+    fun deleteAllCircuits() {
+        viewModelScope.launch {
+            circuitDao.deleteAll()
+            loadedCircuitId = null
+            _loadedName.value = ""
+            refreshDirty()
+        }
+    }
+
     fun start() = CircuitTimerService.start(getApplication())
 
     fun pause() = CircuitTimerService.pause(getApplication())
