@@ -76,12 +76,10 @@ import net.aucutt.circuits.ui.theme.BannerCharcoal
 import net.aucutt.circuits.ui.theme.BannerBlack
 import net.aucutt.circuits.ui.theme.CircuitsTheme
 import net.aucutt.circuits.ui.theme.CircuitCyan
-import net.aucutt.circuits.ui.theme.CircuitCyanBright
-import net.aucutt.circuits.ui.theme.RobotSilver
+import net.aucutt.circuits.ui.theme.OnPrimaryLight
 import net.aucutt.circuits.ui.theme.RobotSilverDark
-import net.aucutt.circuits.ui.theme.RobotSilverLight
+import net.aucutt.circuits.ui.theme.OnPrimaryLight
 import net.aucutt.circuits.ui.theme.RunnerOrange
-import net.aucutt.circuits.ui.theme.RunnerOrangeBright
 
 private enum class IdleDestination {
     Setup,
@@ -138,7 +136,7 @@ fun CircuitTimerScreen(
         ) {
             BannerBackground()
 
-            CompositionLocalProvider(LocalContentColor provides RunnerOrangeBright) {
+            CompositionLocalProvider(LocalContentColor provides OnPrimaryLight) {
                 Column(modifier = Modifier.fillMaxSize()) {
                     if (uiState.phase == TimerPhase.Idle && idleDestination == IdleDestination.Setup) {
                         Spacer(modifier = Modifier.height(160.dp))
@@ -295,7 +293,7 @@ private fun SetupWorkout(
                 .widthIn(max = 360.dp),
             colors = ButtonDefaults.buttonColors(
                 containerColor = CircuitCyan,
-                contentColor = BannerBlack,
+                contentColor = OnPrimaryLight,
             ),
         ) {
             Text(stringResource(R.string.action_start))
@@ -308,12 +306,12 @@ private fun SetupWorkout(
                 .fillMaxWidth()
                 .widthIn(max = 360.dp),
             colors = ButtonDefaults.outlinedButtonColors(
-                contentColor = RunnerOrangeBright,
+                contentColor = OnPrimaryLight,
                 disabledContentColor = RobotSilverDark,
             ),
             border = BorderStroke(
                 1.5.dp,
-                if (canLoad) RunnerOrangeBright else RobotSilverDark,
+                if (canLoad) OnPrimaryLight else RobotSilverDark,
             ),
         ) {
             Text(stringResource(R.string.action_load))
@@ -327,7 +325,7 @@ private fun SetupWorkout(
                 .widthIn(max = 360.dp),
             colors = ButtonDefaults.filledTonalButtonColors(
                 containerColor = RunnerOrange.copy(alpha = 0.35f),
-                contentColor = RunnerOrangeBright,
+                contentColor = OnPrimaryLight,
                 disabledContainerColor = BannerBlack.copy(alpha = 0.5f),
                 disabledContentColor = RobotSilverDark,
             ),
@@ -369,7 +367,7 @@ private fun SavedCircuitsScreen(
             if (circuits.isNotEmpty()) {
                 TextButton(
                     onClick = { showDeleteAllDialog = true },
-                    colors = ButtonDefaults.textButtonColors(contentColor = RunnerOrangeBright),
+                    colors = ButtonDefaults.textButtonColors(contentColor = OnPrimaryLight),
                 ) {
                     Text(stringResource(R.string.action_delete_all))
                 }
@@ -442,14 +440,14 @@ private fun DeleteAllCircuitsDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = BannerCharcoal,
-        titleContentColor = RunnerOrangeBright,
-        textContentColor = RobotSilverLight,
+        titleContentColor = OnPrimaryLight,
+        textContentColor = OnPrimaryLight,
         title = { Text(stringResource(R.string.delete_all_dialog_title)) },
         text = { Text(stringResource(R.string.delete_all_dialog_message)) },
         confirmButton = {
             TextButton(
                 onClick = onConfirm,
-                colors = ButtonDefaults.textButtonColors(contentColor = RunnerOrangeBright),
+                colors = ButtonDefaults.textButtonColors(contentColor = OnPrimaryLight),
             ) {
                 Text(stringResource(R.string.delete_all_dialog_confirm))
             }
@@ -457,7 +455,7 @@ private fun DeleteAllCircuitsDialog(
         dismissButton = {
             TextButton(
                 onClick = onDismiss,
-                colors = ButtonDefaults.textButtonColors(contentColor = RobotSilverLight),
+                colors = ButtonDefaults.textButtonColors(contentColor = OnPrimaryLight),
             ) {
                 Text(stringResource(R.string.action_cancel))
             }
@@ -476,9 +474,9 @@ private fun SaveCircuitDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = BannerCharcoal,
-        titleContentColor = RunnerOrangeBright,
-        textContentColor = RobotSilverLight,
-        iconContentColor = RunnerOrangeBright,
+        titleContentColor = OnPrimaryLight,
+        textContentColor = OnPrimaryLight,
+        iconContentColor = OnPrimaryLight,
         title = { Text(stringResource(R.string.save_dialog_title)) },
         text = {
             OutlinedTextField(
@@ -488,10 +486,10 @@ private fun SaveCircuitDialog(
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedTextColor = RobotSilverLight,
-                    unfocusedTextColor = RobotSilverLight,
-                    focusedLabelColor = CircuitCyanBright,
-                    unfocusedLabelColor = RobotSilver,
+                    focusedTextColor = OnPrimaryLight,
+                    unfocusedTextColor = OnPrimaryLight,
+                    focusedLabelColor = OnPrimaryLight,
+                    unfocusedLabelColor = OnPrimaryLight,
                     cursorColor = CircuitCyan,
                     focusedBorderColor = CircuitCyan,
                     unfocusedBorderColor = RobotSilverDark,
@@ -502,7 +500,7 @@ private fun SaveCircuitDialog(
             TextButton(
                 onClick = { onConfirm(name) },
                 enabled = name.isNotBlank(),
-                colors = ButtonDefaults.textButtonColors(contentColor = CircuitCyanBright),
+                colors = ButtonDefaults.textButtonColors(contentColor = OnPrimaryLight),
             ) {
                 Text(stringResource(R.string.save_dialog_confirm))
             }
@@ -510,7 +508,7 @@ private fun SaveCircuitDialog(
         dismissButton = {
             TextButton(
                 onClick = onDismiss,
-                colors = ButtonDefaults.textButtonColors(contentColor = RobotSilverLight),
+                colors = ButtonDefaults.textButtonColors(contentColor = OnPrimaryLight),
             ) {
                 Text(stringResource(R.string.action_cancel))
             }
@@ -532,7 +530,7 @@ private fun NumberStepper(
     val buttonShape = RoundedCornerShape(8.dp)
     val stepperButtonColors = ButtonDefaults.buttonColors(
         containerColor = CircuitCyan,
-        contentColor = BannerBlack,
+        contentColor = OnPrimaryLight,
         disabledContainerColor = BannerBlack.copy(alpha = 0.6f),
         disabledContentColor = RobotSilverDark,
     )
@@ -546,7 +544,7 @@ private fun NumberStepper(
             text = label,
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.SemiBold,
-            color = RunnerOrangeBright,
+            color = OnPrimaryLight,
         )
         Row(
             modifier = Modifier
@@ -578,12 +576,12 @@ private fun NumberStepper(
                     text = value.toString(),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
-                    color = CircuitCyanBright,
+                    color = OnPrimaryLight,
                 )
                 Text(
                     text = unit,
                     style = MaterialTheme.typography.labelSmall,
-                    color = RobotSilverLight,
+                    color = OnPrimaryLight,
                     modifier = Modifier.padding(bottom = 2.dp),
                 )
             }
@@ -656,6 +654,10 @@ private fun StartWorkout(
                 Button(
                     onClick = onResume,
                     modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = CircuitCyan,
+                        contentColor = OnPrimaryLight,
+                    ),
                 ) {
                     Text(stringResource(R.string.action_resume))
                 }
@@ -663,6 +665,7 @@ private fun StartWorkout(
                 FilledTonalButton(
                     onClick = onPause,
                     modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.filledTonalButtonColors(contentColor = OnPrimaryLight),
                 ) {
                     Text(stringResource(R.string.action_pause))
                 }
@@ -670,6 +673,8 @@ private fun StartWorkout(
             OutlinedButton(
                 onClick = onStop,
                 modifier = Modifier.weight(1f),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = OnPrimaryLight),
+                border = BorderStroke(1.5.dp, OnPrimaryLight),
             ) {
                 Text(stringResource(R.string.action_stop))
             }
@@ -705,6 +710,10 @@ private fun CompleteWorkout(
             modifier = Modifier
                 .fillMaxWidth()
                 .widthIn(max = 360.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = CircuitCyan,
+                contentColor = OnPrimaryLight,
+            ),
         ) {
             Text(stringResource(R.string.action_again))
         }

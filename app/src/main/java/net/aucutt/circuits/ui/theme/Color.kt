@@ -8,17 +8,14 @@ val BannerSurfaceVariant = Color(0xFF1C1C1C)
 
 val CircuitCyan = Color(0xFF00E5FF)
 val CircuitCyanBright = Color(0xFF4DF0FF)
-val CircuitCyanDim = Color(0xFF00BCD4)
 val CircuitTeal = Color(0xFF14B8A6)
 
 val RunnerOrange = Color(0xFFFF7043)
 val RunnerOrangeBright = Color(0xFFFF8C42)
-val PulseOrange = Color(0xFFFF6B35)
 
 val RobotSilver = Color(0xFFB0BEC5)
 val RobotSilverLight = Color(0xFFCFD8DC)
 val RobotSilverDark = Color(0xFF78909C)
-val RobotMetal = Color(0xFF90A4AE)
 
 
 val PrimaryDark = CircuitCyan
