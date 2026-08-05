@@ -1,5 +1,25 @@
 <resources>
     <string name="app_name">Circuits</string>
+    <string name="mode_selection_subtitle">How would you like to improve today?</string>
+    <string name="mode_timed_title">Timed circuits</string>
+    <string name="mode_timed_description">Work and cooldown intervals measured in minutes.</string>
+    <string name="mode_distance_title">Distance circuits</string>
+    <string name="mode_distance_description">Work measured by distance, cooldowns in minutes.</string>
+    <string name="distance_setup_subtitle">Set your work distance, cooldown, and repeats.</string>
+    <string name="label_distance">Distance</string>
+    <string name="unit_miles">miles</string>
+    <string name="distance_remaining_subtitle">Remaining</string>
+    <string name="distance_remaining_value">%1$s mi</string>
+    <string name="distance_progress">%1$s / %2$s mi</string>
+    <string name="distance_finished_subtitle">Completed %1$s mi.</string>
+    <string name="status_acquiring_gps">Acquiring GPS…</string>
+    <string name="tts_distance_marker">%1$s complete.</string>
+    <string name="tts_distance_work_complete">Work interval complete.</string>
+    <string name="notification_distance_channel_name">Distance circuit</string>
+    <string name="notification_distance_channel_description">Tracks distance and cooldown while a distance circuit runs in the background</string>
+    <string name="notification_distance_work_title">@string/phase_work</string>
+    <string name="notification_distance_work_text">%1$s mi remaining</string>
+    <string name="notification_distance_complete_text">Completed %1$s mi</string>
     <string name="setup_subtitle">Set your interval, cooldown, and repeats.</string>
     <string name="label_interval">Interval</string>
     <string name="label_cooldown">Cooldown</string>
@@ -34,6 +54,7 @@
     <string name="finished_title">Circuit complete</string>
     <string name="finished_subtitle">Finished %1$d rounds.</string>
     <string name="tts_pre_workout">Activity will start in 30 seconds.</string>
+    <string name="tts_workout_starting">Workout starting. Round %1$d.</string>
     <string name="tts_work_round">Work. Round %1$d.</string>
     <string name="tts_cooldown">Cooldown.</string>
     <string name="tts_circuit_complete_0">Circuit complete. Nice work!</string>

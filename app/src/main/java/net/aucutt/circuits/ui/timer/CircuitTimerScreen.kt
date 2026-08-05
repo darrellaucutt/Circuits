@@ -6,13 +6,11 @@ import android.os.Build
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.content.MediaType.Companion.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -56,11 +54,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -72,13 +67,13 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import net.aucutt.circuits.R
 import net.aucutt.circuits.data.CircuitEntity
-import net.aucutt.circuits.ui.theme.BannerCharcoal
+import net.aucutt.circuits.ui.components.BannerBackground
 import net.aucutt.circuits.ui.theme.BannerBlack
+import net.aucutt.circuits.ui.theme.BannerCharcoal
 import net.aucutt.circuits.ui.theme.CircuitsTheme
 import net.aucutt.circuits.ui.theme.CircuitCyan
 import net.aucutt.circuits.ui.theme.OnPrimaryLight
 import net.aucutt.circuits.ui.theme.RobotSilverDark
-import net.aucutt.circuits.ui.theme.OnPrimaryLight
 import net.aucutt.circuits.ui.theme.RunnerOrange
 
 private enum class IdleDestination {
@@ -88,6 +83,7 @@ private enum class IdleDestination {
 
 @Composable
 fun CircuitTimerScreen(
+    onNavigateBack: () -> Unit = {},
     viewModel: CircuitTimerViewModel = viewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -125,6 +121,9 @@ fun CircuitTimerScreen(
         viewModel.start()
     }
 
+    val canNavigateBack = uiState.phase == TimerPhase.Idle && idleDestination == IdleDestination.Setup
+    BackHandler(enabled = canNavigateBack, onBack = onNavigateBack)
+
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         containerColor = Color.Transparent,
@@ -138,8 +137,17 @@ fun CircuitTimerScreen(
 
             CompositionLocalProvider(LocalContentColor provides OnPrimaryLight) {
                 Column(modifier = Modifier.fillMaxSize()) {
+                    if (canNavigateBack) {
+                        IconButton(onClick = onNavigateBack) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+                                contentDescription = stringResource(R.string.action_back),
+                            )
+                        }
+                    }
+
                     if (uiState.phase == TimerPhase.Idle && idleDestination == IdleDestination.Setup) {
-                        Spacer(modifier = Modifier.height(160.dp))
+                        Spacer(modifier = Modifier.height(if (canNavigateBack) 120.dp else 160.dp))
                     }
 
                     when (uiState.phase) {
@@ -196,33 +204,6 @@ fun CircuitTimerScreen(
                 viewModel.saveCircuit(name)
                 showSaveDialog = false
             },
-        )
-    }
-}
-
-@Composable
-private fun BannerBackground(modifier: Modifier = Modifier) {
-    Box(modifier = modifier.fillMaxSize()) {
-        Image(
-            painter = painterResource(R.drawable.banner_running_robot),
-            contentDescription = null,
-            contentScale = ContentScale.Crop,
-            alignment = Alignment.TopCenter,
-            modifier = Modifier.fillMaxSize(),
-        )
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        colorStops = arrayOf(
-                            0f to Color.Transparent,
-                            0.32f to Color.Transparent,
-                            0.55f to BannerBlack.copy(alpha = 0.35f),
-                            1f to BannerBlack.copy(alpha = 0.55f),
-                        ),
-                    ),
-                ),
         )
     }
 }

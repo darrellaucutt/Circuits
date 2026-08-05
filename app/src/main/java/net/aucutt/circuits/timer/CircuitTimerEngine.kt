@@ -33,8 +33,9 @@ object CircuitTimerEngine {
     private val _uiState = MutableStateFlow(TimerUiState())
     val uiState: StateFlow<TimerUiState> = _uiState.asStateFlow()
 
-    private val _announcements = MutableSharedFlow<TimerAnnouncement>(extraBufferCapacity = 8)
-    val announcements: SharedFlow<TimerAnnouncement> = _announcements.asSharedFlow()
+    private var _announcements = MutableSharedFlow<TimerAnnouncement>(extraBufferCapacity = 8)
+    val announcements: SharedFlow<TimerAnnouncement>
+        get() = _announcements.asSharedFlow()
 
     fun updateInterval(minutes: Int) {
         if (_uiState.value.phase != TimerPhase.Idle) return
@@ -110,6 +111,7 @@ object CircuitTimerEngine {
         tickerJob?.cancel()
         tickerJob = null
         _uiState.value = TimerUiState()
+        _announcements = MutableSharedFlow(extraBufferCapacity = 8)
     }
 
     /** Overrides the coroutine scope used by the ticker. For unit tests only. */
@@ -155,7 +157,7 @@ object CircuitTimerEngine {
                         currentRound = 1,
                     )
                 }
-                announceWork(1)
+                _announcements.tryEmit(TimerAnnouncement.WorkoutStart(1))
             }
 
             TimerPhase.Work -> {

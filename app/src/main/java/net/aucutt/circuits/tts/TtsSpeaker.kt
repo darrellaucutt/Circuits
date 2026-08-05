@@ -104,7 +104,7 @@ class TtsSpeaker(context: Context) : TextToSpeech.OnInitListener {
     }
 
     private fun enqueue(text: String) {
-        tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, text.hashCode().toString())
+        tts.speak(text, TextToSpeech.QUEUE_ADD, null, text.hashCode().toString())
     }
 
     companion object {

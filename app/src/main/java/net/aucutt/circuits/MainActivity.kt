@@ -4,8 +4,8 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import net.aucutt.circuits.ui.CircuitsApp
 import net.aucutt.circuits.ui.theme.CircuitsTheme
-import net.aucutt.circuits.ui.timer.CircuitTimerScreen
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -13,7 +13,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             CircuitsTheme {
-                CircuitTimerScreen()
+                CircuitsApp()
             }
         }
     }

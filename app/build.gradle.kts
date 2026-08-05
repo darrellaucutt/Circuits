@@ -59,6 +59,7 @@ dependencies {
     implementation(libs.androidx.room.migration)
     implementation(libs.androidx.sqlite.framework)
     ksp(libs.androidx.room.compiler)
+    implementation(libs.play.services.location)
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
     androidTestImplementation(platform(libs.androidx.compose.bom))

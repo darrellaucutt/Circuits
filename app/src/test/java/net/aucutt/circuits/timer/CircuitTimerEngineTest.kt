@@ -69,6 +69,25 @@ class CircuitTimerEngineTest {
     }
 
     @Test
+    fun afterPreWorkoutCountdown_emitsWorkoutStart() {
+        val dispatcher = StandardTestDispatcher(scheduler)
+        val announcements = mutableListOf<TimerAnnouncement>()
+        val scope = CoroutineScope(SupervisorJob() + dispatcher)
+        val job = scope.launch {
+            CircuitTimerEngine.announcements.collect { announcements.add(it) }
+        }
+        scheduler.runCurrent()
+
+        CircuitTimerEngine.start()
+        advanceTime(30_000)
+        scheduler.runCurrent()
+        job.cancel()
+
+        assertTrue(announcements.contains(TimerAnnouncement.PreWorkout))
+        assertTrue(announcements.contains(TimerAnnouncement.WorkoutStart(1)))
+    }
+
+    @Test
     fun afterPreWorkoutCountdown_transitionsToWorkRound1() {
         CircuitTimerEngine.start()
         advanceTime(30_000)
@@ -112,7 +131,7 @@ class CircuitTimerEngineTest {
         assertEquals(0, state.remainingSeconds)
         assertFalse(state.isRunning)
         assertTrue(announcements.contains(TimerAnnouncement.Complete))
-        assertTrue(announcements.contains(TimerAnnouncement.Work(1)))
+        assertTrue(announcements.contains(TimerAnnouncement.WorkoutStart(1)))
     }
 
     @Test

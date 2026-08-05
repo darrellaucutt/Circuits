@@ -21,18 +21,21 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import net.aucutt.circuits.MainActivity
 import net.aucutt.circuits.R
-import net.aucutt.circuits.timer.CircuitTimerEngine
-import net.aucutt.circuits.timer.TimerAnnouncement
+import net.aucutt.circuits.distance.DistanceAnnouncement
+import net.aucutt.circuits.distance.DistanceCircuitEngine
+import net.aucutt.circuits.location.DistanceLocationTracker
 import net.aucutt.circuits.tts.TtsSpeaker
-import net.aucutt.circuits.ui.timer.TimerPhase
-import net.aucutt.circuits.ui.timer.TimerUiState
+import net.aucutt.circuits.ui.distance.DistanceMiles
+import net.aucutt.circuits.ui.distance.DistancePhase
+import net.aucutt.circuits.ui.distance.DistanceUiState
 import kotlin.time.Duration.Companion.seconds
 
-class CircuitTimerService : Service() {
+class DistanceCircuitService : Service() {
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private var ttsSpeaker: TtsSpeaker? = null
     private var observeJob: Job? = null
+    private var locationTracker: DistanceLocationTracker? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -43,35 +46,44 @@ class CircuitTimerService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
             ACTION_START -> {
-                promoteToForeground(CircuitTimerEngine.uiState.value)
+                promoteToForeground(DistanceCircuitEngine.uiState.value)
                 beginObserving()
-                CircuitTimerEngine.start()
+                DistanceCircuitEngine.start()
             }
 
-            ACTION_PAUSE -> CircuitTimerEngine.pause()
+            ACTION_PAUSE -> {
+                locationTracker?.stop()
+                DistanceCircuitEngine.pause()
+            }
 
             ACTION_RESUME -> {
-                CircuitTimerEngine.resume()
-                ensureForeground(CircuitTimerEngine.uiState.value)
+                DistanceCircuitEngine.resume()
+                ensureForeground(DistanceCircuitEngine.uiState.value)
+                syncLocationTracking(DistanceCircuitEngine.uiState.value)
             }
 
             ACTION_STOP -> {
-                CircuitTimerEngine.stop()
+                locationTracker?.stop()
+                locationTracker = null
+                DistanceCircuitEngine.stop()
                 ttsSpeaker?.stop()
                 stopForegroundAndSelf()
             }
 
             ACTION_RESET -> {
-                CircuitTimerEngine.resetToSetup()
+                locationTracker?.stop()
+                locationTracker = null
+                DistanceCircuitEngine.resetToSetup()
                 ttsSpeaker?.stop()
                 stopForegroundAndSelf()
             }
 
             else -> {
-                val state = CircuitTimerEngine.uiState.value
+                val state = DistanceCircuitEngine.uiState.value
                 if (state.isRunning) {
                     promoteToForeground(state)
                     beginObserving()
+                    syncLocationTracking(state)
                 } else {
                     stopSelf()
                 }
@@ -83,6 +95,8 @@ class CircuitTimerService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onDestroy() {
+        locationTracker?.stop()
+        locationTracker = null
         observeJob?.cancel()
         serviceScope.cancel()
         ttsSpeaker?.shutdown()
@@ -94,31 +108,36 @@ class CircuitTimerService : Service() {
         if (observeJob?.isActive == true) return
         observeJob = serviceScope.launch {
             launch {
-                CircuitTimerEngine.uiState.collect { state ->
+                DistanceCircuitEngine.uiState.collect { state ->
+                    syncLocationTracking(state)
                     when (state.phase) {
-                        TimerPhase.Idle -> stopForegroundAndSelf()
-                        TimerPhase.Finished -> {
+                        DistancePhase.Idle -> stopForegroundAndSelf()
+                        DistancePhase.Finished -> {
                             updateNotification(state)
                             delay(3.seconds)
-                            if (CircuitTimerEngine.uiState.value.phase == TimerPhase.Finished) {
+                            if (DistanceCircuitEngine.uiState.value.phase == DistancePhase.Finished) {
                                 stopForegroundAndSelf()
                             }
                         }
-                        TimerPhase.PreWorkout, TimerPhase.Work, TimerPhase.Cooldown -> updateNotification(state)
+                        DistancePhase.Work, DistancePhase.Cooldown, DistancePhase.PreWorkout -> updateNotification(state)
                     }
                 }
             }
             launch {
-                CircuitTimerEngine.announcements.collect { announcement ->
+                DistanceCircuitEngine.announcements.collect { announcement ->
                     val text = when (announcement) {
-                        TimerAnnouncement.PreWorkout ->
+                        DistanceAnnouncement.PreWorkout ->
                             getString(R.string.tts_pre_workout)
-                        is TimerAnnouncement.WorkoutStart ->
+                        is DistanceAnnouncement.WorkStart ->
                             getString(R.string.tts_workout_starting, announcement.round)
-                        is TimerAnnouncement.Work ->
-                            getString(R.string.tts_work_round, announcement.round)
-                        TimerAnnouncement.Cooldown -> getString(R.string.tts_cooldown)
-                        TimerAnnouncement.Complete -> getRandomCompleteMessage()
+                        is DistanceAnnouncement.HalfMileMarker ->
+                            getString(
+                                R.string.tts_distance_marker,
+                                DistanceMiles.formatForTts(announcement.halfMiles),
+                            )
+                        DistanceAnnouncement.WorkComplete -> getString(R.string.tts_distance_work_complete)
+                        DistanceAnnouncement.Cooldown -> getString(R.string.tts_cooldown)
+                        DistanceAnnouncement.Complete -> getRandomCompleteMessage()
                     }
                     ttsSpeaker?.speak(text)
                 }
@@ -126,11 +145,24 @@ class CircuitTimerService : Service() {
         }
     }
 
-    private fun getRandomCompleteMessage() : String {
-        //TODO make this more dynamic, read the number of platitudes from strings.xml
-        //maybe using an array
-        val rand = (0..4).random()
-        return when (rand)  {
+    private fun syncLocationTracking(state: DistanceUiState) {
+        if (state.phase == DistancePhase.Work && !state.isPaused) {
+            ensureLocationTracker().start()
+        } else {
+            locationTracker?.stop(resetFix = state.phase != DistancePhase.Work)
+        }
+    }
+
+    private fun ensureLocationTracker(): DistanceLocationTracker {
+        return locationTracker ?: DistanceLocationTracker(
+            context = applicationContext,
+            onFirstFix = { DistanceCircuitEngine.onGpsFixAcquired() },
+            onDistanceDelta = { delta -> DistanceCircuitEngine.addDistance(delta) },
+        ).also { locationTracker = it }
+    }
+
+    private fun getRandomCompleteMessage(): String {
+        return when ((0..4).random()) {
             0 -> getString(R.string.tts_circuit_complete_0)
             1 -> getString(R.string.tts_circuit_complete_1)
             2 -> getString(R.string.tts_circuit_complete_2)
@@ -139,32 +171,29 @@ class CircuitTimerService : Service() {
         }
     }
 
-    private fun promoteToForeground(state: TimerUiState) {
+    private fun promoteToForeground(state: DistanceUiState) {
         val notification = buildNotification(state)
-        ServiceCompat.startForeground(
-            this,
-            NOTIFICATION_ID,
-            notification,
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+        val serviceType = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION or
                 ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK
-            } else {
-                0
-            },
-        )
+        } else {
+            0
+        }
+        ServiceCompat.startForeground(this, NOTIFICATION_ID, notification, serviceType)
     }
 
-    private fun ensureForeground(state: TimerUiState) {
+    private fun ensureForeground(state: DistanceUiState) {
         if (state.isRunning) {
             promoteToForeground(state)
         }
     }
 
-    private fun updateNotification(state: TimerUiState) {
-        val manager = getSystemService(NotificationManager::class.java) ?: return
-        manager.notify(NOTIFICATION_ID, buildNotification(state))
+    private fun updateNotification(state: DistanceUiState) {
+        getSystemService(NotificationManager::class.java)
+            ?.notify(NOTIFICATION_ID, buildNotification(state))
     }
 
-    private fun buildNotification(state: TimerUiState): Notification {
+    private fun buildNotification(state: DistanceUiState): Notification {
         val openApp = PendingIntent.getActivity(
             this,
             0,
@@ -177,7 +206,7 @@ class CircuitTimerService : Service() {
         val title: String
         val text: String
         when (state.phase) {
-            TimerPhase.PreWorkout -> {
+            DistancePhase.PreWorkout -> {
                 title = getString(R.string.notification_pre_workout_title)
                 text = getString(
                     R.string.notification_pre_workout_text,
@@ -185,17 +214,19 @@ class CircuitTimerService : Service() {
                 )
             }
 
-            TimerPhase.Work -> {
-                title = getString(R.string.notification_work_title)
-                text = getString(
-                    R.string.notification_timer_text,
-                    formatTime(state.remainingSeconds),
-                    state.currentRound,
-                    state.config.repeats,
-                )
+            DistancePhase.Work -> {
+                title = getString(R.string.notification_distance_work_title)
+                text = if (state.hasGpsFix) {
+                    getString(
+                        R.string.notification_distance_work_text,
+                        DistanceMiles.formatDecimal(state.remainingWorkMeters / DistanceMiles.METERS_PER_MILE),
+                    )
+                } else {
+                    getString(R.string.status_acquiring_gps)
+                }
             }
 
-            TimerPhase.Cooldown -> {
+            DistancePhase.Cooldown -> {
                 title = getString(R.string.notification_cooldown_title)
                 text = getString(
                     R.string.notification_timer_text,
@@ -205,19 +236,19 @@ class CircuitTimerService : Service() {
                 )
             }
 
-            TimerPhase.Finished -> {
+            DistancePhase.Finished -> {
                 title = getString(R.string.notification_complete_title)
                 text = getString(R.string.notification_complete_text, state.config.repeats)
             }
 
-            TimerPhase.Idle -> {
+            DistancePhase.Idle -> {
                 title = getString(R.string.app_name)
                 text = getString(R.string.notification_idle_text)
             }
         }
 
         val builder = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setSmallIcon(android.R.drawable.ic_media_play)
+            .setSmallIcon(android.R.drawable.ic_menu_mylocation)
             .setContentTitle(title)
             .setContentText(text)
             .setContentIntent(openApp)
@@ -255,7 +286,7 @@ class CircuitTimerService : Service() {
         return PendingIntent.getService(
             this,
             requestCode,
-            Intent(this, CircuitTimerService::class.java).setAction(action),
+            Intent(this, DistanceCircuitService::class.java).setAction(action),
             pendingIntentFlags(),
         )
     }
@@ -265,6 +296,8 @@ class CircuitTimerService : Service() {
     }
 
     private fun stopForegroundAndSelf() {
+        locationTracker?.stop()
+        locationTracker = null
         observeJob?.cancel()
         observeJob = null
         ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
@@ -274,51 +307,51 @@ class CircuitTimerService : Service() {
     private fun createNotificationChannel() {
         val channel = NotificationChannel(
             CHANNEL_ID,
-            getString(R.string.notification_channel_name),
+            getString(R.string.notification_distance_channel_name),
             NotificationManager.IMPORTANCE_LOW,
         ).apply {
-            description = getString(R.string.notification_channel_description)
+            description = getString(R.string.notification_distance_channel_description)
             setSound(null, null)
         }
         getSystemService(NotificationManager::class.java)?.createNotificationChannel(channel)
     }
 
     companion object {
-        const val ACTION_START = "net.aucutt.circuits.action.START"
-        const val ACTION_PAUSE = "net.aucutt.circuits.action.PAUSE"
-        const val ACTION_RESUME = "net.aucutt.circuits.action.RESUME"
-        const val ACTION_STOP = "net.aucutt.circuits.action.STOP"
-        const val ACTION_RESET = "net.aucutt.circuits.action.RESET"
+        const val ACTION_START = "net.aucutt.circuits.action.DISTANCE_START"
+        const val ACTION_PAUSE = "net.aucutt.circuits.action.DISTANCE_PAUSE"
+        const val ACTION_RESUME = "net.aucutt.circuits.action.DISTANCE_RESUME"
+        const val ACTION_STOP = "net.aucutt.circuits.action.DISTANCE_STOP"
+        const val ACTION_RESET = "net.aucutt.circuits.action.DISTANCE_RESET"
 
-        private const val CHANNEL_ID = "circuit_timer"
-        private const val NOTIFICATION_ID = 1001
+        private const val CHANNEL_ID = "distance_circuit"
+        private const val NOTIFICATION_ID = 1002
 
         fun start(context: Context) {
-            val intent = Intent(context, CircuitTimerService::class.java).setAction(ACTION_START)
+            val intent = Intent(context, DistanceCircuitService::class.java).setAction(ACTION_START)
             context.startForegroundService(intent)
         }
 
         fun pause(context: Context) {
             context.startService(
-                Intent(context, CircuitTimerService::class.java).setAction(ACTION_PAUSE)
+                Intent(context, DistanceCircuitService::class.java).setAction(ACTION_PAUSE),
             )
         }
 
         fun resume(context: Context) {
             context.startForegroundService(
-                Intent(context, CircuitTimerService::class.java).setAction(ACTION_RESUME)
+                Intent(context, DistanceCircuitService::class.java).setAction(ACTION_RESUME),
             )
         }
 
         fun stop(context: Context) {
             context.startService(
-                Intent(context, CircuitTimerService::class.java).setAction(ACTION_STOP)
+                Intent(context, DistanceCircuitService::class.java).setAction(ACTION_STOP),
             )
         }
 
         fun reset(context: Context) {
             context.startService(
-                Intent(context, CircuitTimerService::class.java).setAction(ACTION_RESET)
+                Intent(context, DistanceCircuitService::class.java).setAction(ACTION_RESET),
             )
         }
     }
