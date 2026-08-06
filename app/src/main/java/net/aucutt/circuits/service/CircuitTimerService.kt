@@ -44,8 +44,8 @@ class CircuitTimerService : Service() {
         when (intent?.action) {
             ACTION_START -> {
                 promoteToForeground(CircuitTimerEngine.uiState.value)
-                CircuitTimerEngine.start()
                 beginObserving()
+                CircuitTimerEngine.start()
             }
 
             ACTION_PAUSE -> CircuitTimerEngine.pause()
