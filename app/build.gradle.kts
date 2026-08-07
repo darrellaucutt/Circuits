@@ -26,6 +26,7 @@ android {
     buildTypes {
         release {
             optimization {
+                signingConfig = signingConfigs.getByName("debug") //temp for non playstore
                 enable = false
             }
         }
@@ -36,6 +37,14 @@ android {
     }
     buildFeatures {
         compose = true
+    }
+}
+
+androidComponents {
+    onVariants { variant ->
+        variant.outputs.forEach { output ->
+            output.outputFileName.set("circuits-${variant.name}.apk")
+        }
     }
 }
 
