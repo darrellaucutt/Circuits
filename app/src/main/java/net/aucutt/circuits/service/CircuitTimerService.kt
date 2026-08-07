@@ -24,8 +24,8 @@ import net.aucutt.circuits.R
 import net.aucutt.circuits.timer.CircuitTimerEngine
 import net.aucutt.circuits.timer.TimerAnnouncement
 import net.aucutt.circuits.tts.TtsSpeaker
-import net.aucutt.circuits.ui.timer.TimerPhase
-import net.aucutt.circuits.ui.timer.TimerUiState
+import net.aucutt.circuits.model.TimerPhase
+import net.aucutt.circuits.model.TimerUiState
 import kotlin.time.Duration.Companion.seconds
 
 class CircuitTimerService : Service() {

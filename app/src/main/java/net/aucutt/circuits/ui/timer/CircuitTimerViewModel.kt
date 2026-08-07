@@ -11,14 +11,19 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import net.aucutt.circuits.data.CircuitEntity
 import net.aucutt.circuits.data.CircuitsDatabase
+import net.aucutt.circuits.model.TimerConfig
+import net.aucutt.circuits.model.TimerPhase
 import net.aucutt.circuits.service.CircuitTimerService
+import net.aucutt.circuits.sync.WearSyncManager
 import net.aucutt.circuits.timer.CircuitTimerEngine
 
 class CircuitTimerViewModel(application: Application) : AndroidViewModel(application) {
 
     private val circuitDao = CircuitsDatabase.getInstance(application).circuitDao()
+    private val wearSyncManager = WearSyncManager.getInstance(application)
 
     val uiState = CircuitTimerEngine.uiState
+    val watchConnected = wearSyncManager.watchConnected
 
     val savedCircuits: StateFlow<List<CircuitEntity>> = circuitDao.observeAll()
         .stateIn(
@@ -35,6 +40,24 @@ class CircuitTimerViewModel(application: Application) : AndroidViewModel(applica
 
     private val _loadedName = MutableStateFlow("")
     val loadedName: StateFlow<String> = _loadedName.asStateFlow()
+
+    init {
+        viewModelScope.launch {
+            savedCircuits.collect { circuits ->
+                wearSyncManager.pushCircuits(circuits)
+            }
+        }
+        viewModelScope.launch {
+            uiState.collect { state ->
+                if (state.phase == TimerPhase.Idle) {
+                    wearSyncManager.pushConfig(
+                        config = state.config,
+                        name = _loadedName.value.ifBlank { "Custom" },
+                    )
+                }
+            }
+        }
+    }
 
     fun updateInterval(minutes: Int) {
         CircuitTimerEngine.updateInterval(minutes)
@@ -64,6 +87,7 @@ class CircuitTimerViewModel(application: Application) : AndroidViewModel(applica
                 loadedCircuitId = circuitDao.insert(CircuitEntity.from(trimmed, config))
             }
             markClean(config, trimmed)
+            wearSyncManager.pushConfig(config, trimmed)
         }
     }
 
@@ -71,6 +95,9 @@ class CircuitTimerViewModel(application: Application) : AndroidViewModel(applica
         CircuitTimerEngine.applyConfig(circuit.toConfig())
         loadedCircuitId = circuit.id
         markClean(circuit.toConfig(), circuit.name)
+        viewModelScope.launch {
+            wearSyncManager.pushConfig(circuit.toConfig(), circuit.name)
+        }
     }
 
     fun deleteAllCircuits() {
@@ -83,6 +110,15 @@ class CircuitTimerViewModel(application: Application) : AndroidViewModel(applica
     }
 
     fun start() = CircuitTimerService.start(getApplication())
+
+    fun startOnWatch() {
+        viewModelScope.launch {
+            wearSyncManager.startOnWatch(
+                config = uiState.value.config,
+                name = _loadedName.value.ifBlank { "Custom" },
+            )
+        }
+    }
 
     fun pause() = CircuitTimerService.pause(getApplication())
 

@@ -2,7 +2,7 @@ package net.aucutt.circuits.data
 
 import androidx.room3.Entity
 import androidx.room3.PrimaryKey
-import net.aucutt.circuits.ui.timer.TimerConfig
+import net.aucutt.circuits.model.TimerConfig
 
 @Entity(tableName = "circuits")
 data class CircuitEntity(

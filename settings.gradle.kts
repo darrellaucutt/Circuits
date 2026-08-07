@@ -23,5 +23,5 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "Circuits"
-include(":app")
+include(":app", ":core", ":wear")
  

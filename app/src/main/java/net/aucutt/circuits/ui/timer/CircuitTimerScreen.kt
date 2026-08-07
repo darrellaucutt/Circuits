@@ -72,6 +72,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import net.aucutt.circuits.R
 import net.aucutt.circuits.data.CircuitEntity
+import net.aucutt.circuits.model.TimerConfig
+import net.aucutt.circuits.model.TimerPhase
+import net.aucutt.circuits.model.TimerUiState
 import net.aucutt.circuits.ui.theme.BannerCharcoal
 import net.aucutt.circuits.ui.theme.BannerBlack
 import net.aucutt.circuits.ui.theme.CircuitsTheme
@@ -94,6 +97,7 @@ fun CircuitTimerScreen(
     val savedCircuits by viewModel.savedCircuits.collectAsStateWithLifecycle()
     val isDirty by viewModel.isDirty.collectAsStateWithLifecycle()
     val loadedName by viewModel.loadedName.collectAsStateWithLifecycle()
+    val watchConnected by viewModel.watchConnected.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
     var showSaveDialog by rememberSaveable { mutableStateOf(false) }
@@ -148,10 +152,12 @@ fun CircuitTimerScreen(
                                 config = uiState.config,
                                 canSave = isDirty || loadedName.isEmpty(),
                                 canLoad = savedCircuits.isNotEmpty(),
+                                watchConnected = watchConnected,
                                 onIntervalChange = viewModel::updateInterval,
                                 onCooldownChange = viewModel::updateCooldown,
                                 onRepeatsChange = viewModel::updateRepeats,
                                 onStart = ::startCircuit,
+                                onStartOnWatch = viewModel::startOnWatch,
                                 onLoad = { idleDestination = IdleDestination.LoadCircuit },
                                 onSave = { showSaveDialog = true },
                                 modifier = Modifier.weight(1f),
@@ -232,10 +238,12 @@ private fun SetupWorkout(
     config: TimerConfig,
     canSave: Boolean,
     canLoad: Boolean,
+    watchConnected: Boolean,
     onIntervalChange: (Int) -> Unit,
     onCooldownChange: (Int) -> Unit,
     onRepeatsChange: (Int) -> Unit,
     onStart: () -> Unit,
+    onStartOnWatch: () -> Unit,
     onLoad: () -> Unit,
     onSave: () -> Unit,
     modifier: Modifier = Modifier,
@@ -297,6 +305,21 @@ private fun SetupWorkout(
             ),
         ) {
             Text(stringResource(R.string.action_start))
+        }
+
+        if (watchConnected) {
+            OutlinedButton(
+                onClick = onStartOnWatch,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .widthIn(max = 360.dp),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    contentColor = OnPrimaryLight,
+                ),
+                border = BorderStroke(1.5.dp, OnPrimaryLight),
+            ) {
+                Text(stringResource(R.string.action_start_on_watch))
+            }
         }
 
         OutlinedButton(
@@ -742,10 +765,12 @@ private fun SetupPreview() {
             config = TimerConfig(),
             canSave = true,
             canLoad = true,
+            watchConnected = true,
             onIntervalChange = {},
             onCooldownChange = {},
             onRepeatsChange = {},
             onStart = {},
+            onStartOnWatch = {},
             onLoad = {},
             onSave = {},
         )

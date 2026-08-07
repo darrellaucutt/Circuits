@@ -7,6 +7,8 @@
     <string name="unit_minutes">min</string>
     <string name="unit_times">times</string>
     <string name="action_start">Start</string>
+    <string name="action_start_on_watch">Start on watch</string>
+    <string name="watch_connected">Watch connected</string>
     <string name="action_again">Again</string>
     <string name="action_load">Load a circuit</string>
     <string name="action_save">Save a circuit</string>
