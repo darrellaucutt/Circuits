@@ -81,11 +81,12 @@ object CircuitTimerEngine {
             currentRound = 1,
             isPaused = false,
         )
-        _announcements.tryEmit(TimerAnnouncement.PreWorkout)
-
         startTicker()
     }
 
+    fun initialAnnouncement() {
+        _announcements.tryEmit(TimerAnnouncement.PreWorkout)
+    }
     fun pause() {
         val state = _uiState.value
         if (!state.isRunning || state.isPaused) return

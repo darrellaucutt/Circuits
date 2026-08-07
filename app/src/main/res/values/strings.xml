@@ -34,6 +34,7 @@
     <string name="finished_title">Circuit complete</string>
     <string name="finished_subtitle">Finished %1$d rounds.</string>
     <string name="tts_pre_workout">Activity will start in 30 seconds.</string>
+    <string name="tts_pre_workout_debug">Activity will start in 5 seconds.</string>
     <string name="tts_work_round">Work. Round %1$d.</string>
     <string name="tts_cooldown">Cooldown.</string>
     <string name="tts_circuit_complete_0">Circuit complete. Nice work!</string>

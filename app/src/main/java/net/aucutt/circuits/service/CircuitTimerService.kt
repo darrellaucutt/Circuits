@@ -20,6 +20,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import net.aucutt.circuits.BuildConfig
 import net.aucutt.circuits.MainActivity
 import net.aucutt.circuits.R
 import net.aucutt.circuits.timer.CircuitTimerEngine
@@ -45,12 +46,9 @@ class CircuitTimerService : Service() {
         when (intent?.action) {
             ACTION_START -> {
                 promoteToForeground(CircuitTimerEngine.uiState.value)
-                //TODO The first announcement is missed because start happens beginObserving,
-                // but when I switch the order, none of the announcements are made.
-                // For now I make the first speak call directly.
-                ttsSpeaker?.speak(  getString(R.string.tts_pre_workout))
                 CircuitTimerEngine.start()
                 beginObserving()
+                CircuitTimerEngine.initialAnnouncement()
             }
 
             ACTION_PAUSE -> CircuitTimerEngine.pause()
@@ -120,8 +118,11 @@ class CircuitTimerService : Service() {
             launch {
                 CircuitTimerEngine.announcements.collect { announcement ->
                     val text = when (announcement) {
-                        TimerAnnouncement.PreWorkout ->
-                            getString(R.string.tts_pre_workout)
+                        TimerAnnouncement.PreWorkout -> when (BuildConfig.DEBUG) {
+                            //TODO duplicate logic in CicruitTimerEngine
+                            true -> getString(R.string.tts_pre_workout_debug )
+                            else -> getString(R.string.tts_pre_workout )
+                        }
                         is TimerAnnouncement.Work ->
                             getString(R.string.tts_work_round, announcement.round)
                         TimerAnnouncement.Cooldown -> getString(R.string.tts_cooldown)
