@@ -74,10 +74,7 @@ object CircuitTimerEngine {
         _uiState.value = TimerUiState(
             config = config,
             phase = TimerPhase.PreWorkout,
-            remainingSeconds = when (BuildConfig.DEBUG) {
-                true -> PRE_WORKOUT_SECONDS_DEBUG
-                else -> PRE_WORKOUT_SECONDS
-            },
+            remainingSeconds = getStartCountdownTimeInSeconds(),
             currentRound = 1,
             isPaused = false,
         )
@@ -86,6 +83,13 @@ object CircuitTimerEngine {
 
     fun initialAnnouncement() {
         _announcements.tryEmit(TimerAnnouncement.PreWorkout)
+    }
+
+    fun getStartCountdownTimeInSeconds() : Int {
+        return when (BuildConfig.DEBUG) {
+            true -> PRE_WORKOUT_SECONDS_DEBUG
+            else -> PRE_WORKOUT_SECONDS
+        }
     }
     fun pause() {
         val state = _uiState.value

@@ -118,10 +118,9 @@ class CircuitTimerService : Service() {
             launch {
                 CircuitTimerEngine.announcements.collect { announcement ->
                     val text = when (announcement) {
-                        TimerAnnouncement.PreWorkout -> when (BuildConfig.DEBUG) {
-                            //TODO duplicate logic in CicruitTimerEngine
-                            true -> getString(R.string.tts_pre_workout_debug )
-                            else -> getString(R.string.tts_pre_workout )
+                        TimerAnnouncement.PreWorkout -> {
+                            getString( R.string.tts_pre_workout,
+                                CircuitTimerEngine.getStartCountdownTimeInSeconds())
                         }
                         is TimerAnnouncement.Work ->
                             getString(R.string.tts_work_round, announcement.round)
