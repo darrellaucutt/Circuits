@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import net.aucutt.circuits.BuildConfig
 import net.aucutt.circuits.ui.timer.TimerConfig
 import net.aucutt.circuits.ui.timer.TimerPhase
 import net.aucutt.circuits.ui.timer.TimerUiState
@@ -25,6 +26,7 @@ import net.aucutt.circuits.ui.timer.TimerUiState
 object CircuitTimerEngine {
 
     private const val PRE_WORKOUT_SECONDS = 30
+    private const val PRE_WORKOUT_SECONDS_DEBUG = 5
 
     private val defaultScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private var tickerScope: CoroutineScope = defaultScope
@@ -72,11 +74,15 @@ object CircuitTimerEngine {
         _uiState.value = TimerUiState(
             config = config,
             phase = TimerPhase.PreWorkout,
-            remainingSeconds = PRE_WORKOUT_SECONDS,
+            remainingSeconds = when (BuildConfig.DEBUG) {
+                true -> PRE_WORKOUT_SECONDS_DEBUG
+                else -> PRE_WORKOUT_SECONDS
+            },
             currentRound = 1,
             isPaused = false,
         )
         _announcements.tryEmit(TimerAnnouncement.PreWorkout)
+
         startTicker()
     }
 

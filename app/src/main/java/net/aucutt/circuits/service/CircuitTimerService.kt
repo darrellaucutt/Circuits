@@ -10,6 +10,7 @@ import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
+import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
 import kotlinx.coroutines.CoroutineScope
@@ -44,6 +45,10 @@ class CircuitTimerService : Service() {
         when (intent?.action) {
             ACTION_START -> {
                 promoteToForeground(CircuitTimerEngine.uiState.value)
+                //TODO The first announcement is missed because start happens beginObserving,
+                // but when I switch the order, none of the announcements are made.
+                // For now I make the first speak call directly.
+                ttsSpeaker?.speak(  getString(R.string.tts_pre_workout))
                 CircuitTimerEngine.start()
                 beginObserving()
             }
@@ -91,7 +96,11 @@ class CircuitTimerService : Service() {
     }
 
     private fun beginObserving() {
-        if (observeJob?.isActive == true) return
+        Log.d(TAG, "Begin observing")
+        if (observeJob?.isActive == true){
+            Log.w(TAG,  "Observe job is not active")
+            return
+        }
         observeJob = serviceScope.launch {
             launch {
                 CircuitTimerEngine.uiState.collect { state ->
@@ -118,6 +127,10 @@ class CircuitTimerService : Service() {
                         TimerAnnouncement.Cooldown -> getString(R.string.tts_cooldown)
                         TimerAnnouncement.Complete -> getRandomCompleteMessage()
                     }
+                    when (ttsSpeaker) {
+                        null -> Log.d(TAG, "tts speaker is null, dropping $text")
+                        else -> Log.d(TAG, "tts speaker wil be sent $text")
+                    }
                     ttsSpeaker?.speak(text)
                 }
             }
@@ -126,7 +139,6 @@ class CircuitTimerService : Service() {
 
     private fun getRandomCompleteMessage() : String {
         //TODO make this more dynamic, read the number of platitudes from strings.xml
-        //maybe using an array
         val rand = (0..4).random()
         return when (rand)  {
             0 -> getString(R.string.tts_circuit_complete_0)
@@ -288,6 +300,8 @@ class CircuitTimerService : Service() {
         const val ACTION_STOP = "net.aucutt.circuits.action.STOP"
         const val ACTION_RESET = "net.aucutt.circuits.action.RESET"
 
+        private const val TAG = "CircuitTimerService"
+
         private const val CHANNEL_ID = "circuit_timer"
         private const val NOTIFICATION_ID = 1001
 
@@ -320,6 +334,8 @@ class CircuitTimerService : Service() {
             )
         }
     }
+
+
 }
 
 private fun formatTime(totalSeconds: Int): String {

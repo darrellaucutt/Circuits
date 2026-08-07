@@ -23,6 +23,7 @@ class TtsSpeaker(context: Context) : TextToSpeech.OnInitListener {
         }
         val locale = resolveLocale()
         configureRoboticVoice(locale)
+        Log.d(TAG, "TextToSpeech to speech engine marked ready")
         ready.set(true)
         synchronized(pendingUtterances) {
             pendingUtterances.forEach { enqueue(it) }
@@ -33,11 +34,13 @@ class TtsSpeaker(context: Context) : TextToSpeech.OnInitListener {
     fun speak(text: String) {
         if (text.isBlank()) return
         if (!ready.get()) {
+            Log.d(TAG, "Engine not ready adding $text to pending utterances")
             synchronized(pendingUtterances) {
                 pendingUtterances += text
             }
             return
         }
+        Log.d(TAG, "Enqueuing $text")
         enqueue(text)
     }
 

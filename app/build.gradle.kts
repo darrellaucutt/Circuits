@@ -12,7 +12,7 @@ android {
 
         }
     }
-
+    android.buildFeatures.buildConfig = true
     defaultConfig {
         applicationId = "net.aucutt.circuits"
         minSdk = 26
