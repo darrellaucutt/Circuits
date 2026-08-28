@@ -12,13 +12,16 @@ import kotlinx.coroutines.launch
 import net.aucutt.circuits.data.CircuitEntity
 import net.aucutt.circuits.data.CircuitsDatabase
 import net.aucutt.circuits.service.CircuitTimerService
+import net.aucutt.circuits.sync.WearStatePublisher
 import net.aucutt.circuits.timer.CircuitTimerEngine
 
 class CircuitTimerViewModel(application: Application) : AndroidViewModel(application) {
 
     private val circuitDao = CircuitsDatabase.getInstance(application).circuitDao()
+    private val wearStatePublisher = WearStatePublisher.getInstance(application)
 
     val uiState = CircuitTimerEngine.uiState
+    val watchConnected = wearStatePublisher.watchConnected
 
     val savedCircuits: StateFlow<List<CircuitEntity>> = circuitDao.observeAll()
         .stateIn(
@@ -35,6 +38,17 @@ class CircuitTimerViewModel(application: Application) : AndroidViewModel(applica
 
     private val _loadedName = MutableStateFlow("")
     val loadedName: StateFlow<String> = _loadedName.asStateFlow()
+
+    init {
+        viewModelScope.launch {
+            uiState.collect { state ->
+                wearStatePublisher.publish(
+                    state = state,
+                    circuitName = _loadedName.value.ifBlank { "Custom" },
+                )
+            }
+        }
+    }
 
     fun updateInterval(minutes: Int) {
         CircuitTimerEngine.updateInterval(minutes)
