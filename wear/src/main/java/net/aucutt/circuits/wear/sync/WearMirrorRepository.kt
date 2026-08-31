@@ -18,6 +18,10 @@ object WearMirrorRepository {
         _phoneConnected.value = true
     }
 
+    fun setPhoneConnected(connected: Boolean) {
+        _phoneConnected.value = connected
+    }
+
     fun markDisconnected() {
         _phoneConnected.value = false
     }

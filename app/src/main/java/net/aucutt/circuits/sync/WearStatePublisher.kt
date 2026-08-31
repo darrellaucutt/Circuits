@@ -11,24 +11,81 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import net.aucutt.circuits.timer.CircuitTimerEngine
 import net.aucutt.circuits.ui.timer.TimerUiState
 
-/** Pushes live timer state from the phone to a paired watch. */
+/** Pushes live timer state from the phone to paired watches. */
 class WearStatePublisher private constructor(context: Context) {
 
     private val appContext = context.applicationContext
     private val dataClient = Wearable.getDataClient(appContext)
+    private val messageClient = Wearable.getMessageClient(appContext)
+    private val nodeClient = Wearable.getNodeClient(appContext)
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     private val _watchConnected = MutableStateFlow(false)
     val watchConnected: StateFlow<Boolean> = _watchConnected.asStateFlow()
 
-    fun publish(state: TimerUiState, circuitName: String) {
-        scope.launch {
-            refreshWatchConnected()
-            if (!_watchConnected.value) return@launch
+    @Volatile
+    var circuitName: String = "Custom"
 
-            val syncState = SyncTimerState(
+    init {
+        scope.launch {
+            CircuitTimerEngine.uiState.collect { state ->
+                publishInternal(state, circuitName)
+            }
+        }
+    }
+
+    fun publish(state: TimerUiState, circuitName: String) {
+        this.circuitName = circuitName
+        scope.launch {
+            publishInternal(state, circuitName)
+        }
+    }
+
+    fun publishNow() {
+        scope.launch {
+            publishInternal(CircuitTimerEngine.uiState.value, circuitName)
+        }
+    }
+
+    /** Sends the current timer state directly to one watch node. */
+    suspend fun sendStateToNode(nodeId: String) {
+        val payloadBytes = encodeState(CircuitTimerEngine.uiState.value, circuitName)
+        runCatching {
+            messageClient.sendMessage(nodeId, WearSyncPaths.TIMER_STATE, payloadBytes).await()
+        }
+    }
+
+    private suspend fun publishInternal(state: TimerUiState, circuitName: String) {
+        val nodes = runCatching { nodeClient.connectedNodes.await() }.getOrNull().orEmpty()
+        _watchConnected.value = nodes.isNotEmpty()
+
+        val payloadJson = encodeStateJson(state, circuitName)
+        val payloadBytes = payloadJson.toByteArray(Charsets.UTF_8)
+
+        val request = PutDataMapRequest.create(WearSyncPaths.TIMER_STATE).apply {
+            dataMap.putLong("timestamp", System.currentTimeMillis())
+            dataMap.putString("payload", payloadJson)
+        }.asPutDataRequest().setUrgent()
+
+        runCatching { dataClient.putDataItem(request).await() }
+
+        nodes.forEach { node ->
+            runCatching {
+                messageClient.sendMessage(node.id, WearSyncPaths.TIMER_STATE, payloadBytes).await()
+            }
+        }
+    }
+
+    private fun encodeState(state: TimerUiState, circuitName: String): ByteArray {
+        return encodeStateJson(state, circuitName).toByteArray(Charsets.UTF_8)
+    }
+
+    private fun encodeStateJson(state: TimerUiState, circuitName: String): String {
+        return WearSyncCodec.timerStateToJson(
+            SyncTimerState(
                 phase = state.phase.name,
                 remainingSeconds = state.remainingSeconds,
                 currentRound = state.currentRound,
@@ -37,24 +94,8 @@ class WearStatePublisher private constructor(context: Context) {
                 cooldownMinutes = state.config.cooldownMinutes,
                 repeats = state.config.repeats,
                 circuitName = circuitName,
-            )
-            val request = PutDataMapRequest.create(WearSyncPaths.TIMER_STATE).apply {
-                dataMap.putLong("timestamp", System.currentTimeMillis())
-                dataMap.putByteArray(
-                    "payload",
-                    WearSyncCodec.timerStateToJson(syncState).toByteArray(),
-                )
-            }.asPutDataRequest().setUrgent()
-
-            runCatching { dataClient.putDataItem(request).await() }
-        }
-    }
-
-    private suspend fun refreshWatchConnected() {
-        val nodes = runCatching {
-            Wearable.getNodeClient(appContext).connectedNodes.await()
-        }.getOrNull()
-        _watchConnected.value = nodes?.isNotEmpty() == true
+            ),
+        )
     }
 
     companion object {

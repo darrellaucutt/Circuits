@@ -12,7 +12,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "net.aucutt.circuits.wear"
+        applicationId = "net.aucutt.circuits"
         minSdk = 30
         targetSdk = 37
         versionCode = 1
@@ -41,6 +41,7 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.wear.compose.material3)
     implementation(libs.androidx.wear.compose.foundation)
+    implementation(libs.androidx.wear.ongoing)
     implementation(libs.androidx.compose.ui.tooling.preview)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.wear.tooling.preview)

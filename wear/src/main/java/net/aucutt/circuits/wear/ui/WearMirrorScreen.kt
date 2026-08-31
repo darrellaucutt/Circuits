@@ -6,10 +6,13 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -19,6 +22,7 @@ import androidx.wear.compose.material3.Button
 import androidx.wear.compose.material3.MaterialTheme
 import androidx.wear.compose.material3.Text
 import androidx.wear.compose.material3.TimeText
+import androidx.activity.ComponentActivity
 import net.aucutt.circuits.sync.SyncTimerState
 import net.aucutt.circuits.wear.R
 
@@ -29,28 +33,35 @@ fun WearMirrorScreen(
     val timerState by viewModel.timerState.collectAsStateWithLifecycle()
     val phoneConnected by viewModel.phoneConnected.collectAsStateWithLifecycle()
 
+    LaunchedEffect(timerState?.phase, timerState?.currentRound, timerState?.updatedAt) {
+        val state = timerState ?: return@LaunchedEffect
+        if (state.phase != "Idle") {
+            viewModel.onPhaseChanged(state.phase, state.currentRound)
+        }
+    }
+
+    val isWorkoutActive = timerState?.isRunning == true
+    KeepWorkoutScreenOn(isWorkoutActive)
+
     Box(modifier = Modifier.fillMaxSize()) {
         TimeText(modifier = Modifier.align(Alignment.TopCenter))
 
         when {
-            timerState == null || !phoneConnected -> WaitingScreen(
-                hasState = timerState != null,
-            )
-            timerState!!.phase == "Idle" -> WaitingScreen(hasState = true)
+            !phoneConnected -> WaitingScreen(mode = WaitingMode.Disconnected)
+            timerState == null || timerState!!.phase == "Idle" -> WaitingScreen(mode = WaitingMode.WaitingForWorkout)
             timerState!!.phase == "Finished" -> FinishedScreen(state = timerState!!)
             else -> RunningScreen(
                 state = timerState!!,
                 onPause = viewModel::pause,
                 onResume = viewModel::resume,
                 onStop = viewModel::stop,
-                onStateDisplayed = viewModel::onStateDisplayed,
             )
         }
     }
 }
 
 @Composable
-private fun WaitingScreen(hasState: Boolean) {
+private fun WaitingScreen(mode: WaitingMode) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -64,15 +75,38 @@ private fun WaitingScreen(hasState: Boolean) {
             textAlign = TextAlign.Center,
         )
         Text(
-            text = if (hasState) {
-                stringResource(R.string.wear_waiting)
-            } else {
-                stringResource(R.string.wear_disconnected)
+            text = when (mode) {
+                WaitingMode.Disconnected -> stringResource(R.string.wear_disconnected)
+                WaitingMode.WaitingForWorkout -> stringResource(R.string.wear_waiting)
             },
             style = MaterialTheme.typography.bodySmall,
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(top = 8.dp),
         )
+    }
+}
+
+private enum class WaitingMode {
+    Disconnected,
+    WaitingForWorkout,
+}
+
+@Composable
+private fun KeepWorkoutScreenOn(active: Boolean) {
+    val view = LocalView.current
+    val activity = LocalContext.current as ComponentActivity
+    DisposableEffect(active) {
+        view.keepScreenOn = active
+        activity.setShowWhenLocked(active)
+        onDispose {
+            view.keepScreenOn = false
+            activity.setShowWhenLocked(false)
+        }
+    }
+    LaunchedEffect(active) {
+        if (active) {
+            activity.setTurnScreenOn(true)
+        }
     }
 }
 
@@ -82,12 +116,7 @@ private fun RunningScreen(
     onPause: () -> Unit,
     onResume: () -> Unit,
     onStop: () -> Unit,
-    onStateDisplayed: (phase: String, round: Int) -> Unit,
 ) {
-    LaunchedEffect(state.phase, state.currentRound, state.updatedAt) {
-        onStateDisplayed(state.phase, state.currentRound)
-    }
-
     val phaseLabel = when (state.phase) {
         "PreWorkout" -> stringResource(R.string.phase_pre_workout)
         "Work" -> stringResource(R.string.phase_work)
@@ -102,13 +131,6 @@ private fun RunningScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        if (state.circuitName.isNotBlank()) {
-            Text(
-                text = state.circuitName,
-                style = MaterialTheme.typography.labelSmall,
-                textAlign = TextAlign.Center,
-            )
-        }
         Text(
             text = phaseLabel,
             style = MaterialTheme.typography.titleMedium,

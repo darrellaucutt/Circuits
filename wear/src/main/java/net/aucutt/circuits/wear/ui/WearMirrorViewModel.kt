@@ -2,41 +2,45 @@ package net.aucutt.circuits.wear.ui
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.launch
 import net.aucutt.circuits.sync.WearCommandAction
 import net.aucutt.circuits.wear.feedback.HapticCuePlayer
-import net.aucutt.circuits.wear.feedback.TtsSpeaker
+import net.aucutt.circuits.wear.service.WearWorkoutDisplayService
 import net.aucutt.circuits.wear.sync.WearCommandSender
 import net.aucutt.circuits.wear.sync.WearMirrorRepository
+import net.aucutt.circuits.wear.sync.WearMirrorSync
 
 class WearMirrorViewModel(application: Application) : AndroidViewModel(application) {
 
+    private val mirrorSync = WearMirrorSync(application)
     private val commandSender = WearCommandSender(application)
     private val haptics = HapticCuePlayer(application)
-    private val tts = TtsSpeaker(application)
 
     val timerState = WearMirrorRepository.timerState
     val phoneConnected = WearMirrorRepository.phoneConnected
 
-    private var lastAnnouncedPhase: String? = null
-    private var lastAnnouncedRound: Int = 0
+    private var lastHapticPhase: String? = null
+    private var lastHapticRound: Int = 0
 
-    fun onStateDisplayed(phase: String, round: Int) {
-        val phaseChanged = phase != lastAnnouncedPhase
-        val roundChanged = phase == "Work" && round != lastAnnouncedRound
+    init {
+        mirrorSync.start()
+        viewModelScope.launch {
+            timerState.collect {
+                WearWorkoutDisplayService.sync(getApplication())
+            }
+        }
+    }
+
+    fun onPhaseChanged(phase: String, round: Int) {
+        val phaseChanged = phase != lastHapticPhase
+        val roundChanged = phase == "Work" && round != lastHapticRound
         if (!phaseChanged && !roundChanged) return
 
-        lastAnnouncedPhase = phase
-        if (phase == "Work") lastAnnouncedRound = round
+        lastHapticPhase = phase
+        if (phase == "Work") lastHapticRound = round
 
         haptics.playForPhase(phase)
-        val text = when (phase) {
-            "PreWorkout" -> "Activity will start in 30 seconds."
-            "Work" -> "Work. Round $round."
-            "Cooldown" -> "Cooldown."
-            "Finished" -> "Circuit complete."
-            else -> return
-        }
-        tts.speak(text)
     }
 
     fun pause() = commandSender.send(WearCommandAction.PAUSE)
@@ -46,7 +50,7 @@ class WearMirrorViewModel(application: Application) : AndroidViewModel(applicati
     fun stop() = commandSender.send(WearCommandAction.STOP)
 
     override fun onCleared() {
-        tts.shutdown()
+        mirrorSync.stop()
         super.onCleared()
     }
 }

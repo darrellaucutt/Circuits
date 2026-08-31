@@ -7,6 +7,7 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
+        android:name=".CircuitsApplication"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
@@ -37,13 +38,13 @@
             android:foregroundServiceType="mediaPlayback" />
 
         <service
-            android:name=".sync.WearCommandListenerService"
+            android:name=".sync.WearPhoneListenerService"
             android:exported="true">
             <intent-filter>
                 <action android:name="com.google.android.gms.wearable.MESSAGE_RECEIVED" />
                 <data
                     android:host="*"
-                    android:pathPrefix="/command"
+                    android:pathPrefix="/"
                     android:scheme="wear" />
             </intent-filter>
         </service>

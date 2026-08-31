@@ -23,6 +23,7 @@ import kotlinx.coroutines.launch
 import net.aucutt.circuits.BuildConfig
 import net.aucutt.circuits.MainActivity
 import net.aucutt.circuits.R
+import net.aucutt.circuits.sync.WearStatePublisher
 import net.aucutt.circuits.timer.CircuitTimerEngine
 import net.aucutt.circuits.timer.TimerAnnouncement
 import net.aucutt.circuits.tts.TtsSpeaker
@@ -102,6 +103,7 @@ class CircuitTimerService : Service() {
         observeJob = serviceScope.launch {
             launch {
                 CircuitTimerEngine.uiState.collect { state ->
+                    WearStatePublisher.getInstance(this@CircuitTimerService).publishNow()
                     when (state.phase) {
                         TimerPhase.Idle -> stopForegroundAndSelf()
                         TimerPhase.Finished -> {

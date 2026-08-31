@@ -2,6 +2,7 @@ package net.aucutt.circuits.sync
 
 object WearSyncPaths {
     const val TIMER_STATE = "/timer_state"
+    const val TIMER_STATE_REQUEST = "/timer_state_request"
     const val COMMAND = "/command"
 }
 

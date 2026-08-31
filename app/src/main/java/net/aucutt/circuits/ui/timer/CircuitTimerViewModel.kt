@@ -40,12 +40,10 @@ class CircuitTimerViewModel(application: Application) : AndroidViewModel(applica
     val loadedName: StateFlow<String> = _loadedName.asStateFlow()
 
     init {
+        wearStatePublisher.circuitName = _loadedName.value.ifBlank { "Custom" }
         viewModelScope.launch {
-            uiState.collect { state ->
-                wearStatePublisher.publish(
-                    state = state,
-                    circuitName = _loadedName.value.ifBlank { "Custom" },
-                )
+            _loadedName.collect { name ->
+                wearStatePublisher.circuitName = name.ifBlank { "Custom" }
             }
         }
     }

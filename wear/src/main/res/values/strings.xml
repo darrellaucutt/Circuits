@@ -11,8 +11,7 @@
     <string name="phase_finished">Complete</string>
     <string name="round_progress">Round %1$d / %2$d</string>
     <string name="status_paused">Paused</string>
-    <string name="tts_pre_workout">Activity will start in 30 seconds.</string>
-    <string name="tts_work_round">Work. Round %1$d.</string>
-    <string name="tts_cooldown">Cooldown.</string>
-    <string name="tts_complete">Circuit complete.</string>
+    <string name="notification_channel_name">Workout</string>
+    <string name="notification_channel_description">Keeps the workout visible on your watch</string>
+    <string name="notification_timer_text">%1$s · Round %2$d / %3$d</string>
 </resources>

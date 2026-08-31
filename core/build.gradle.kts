@@ -23,5 +23,6 @@ android {
 dependencies {
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.org.json)
+    compileOnly(libs.play.services.wearable)
     testImplementation(libs.junit)
 }
