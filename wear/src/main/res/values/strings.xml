@@ -1,0 +1,17 @@
+<resources>
+    <string name="app_name">Circuits</string>
+    <string name="wear_waiting">Start a circuit on your phone</string>
+    <string name="wear_disconnected">Phone not connected</string>
+    <string name="action_pause">Pause</string>
+    <string name="action_resume">Resume</string>
+    <string name="action_stop">Stop</string>
+    <string name="phase_work">Work</string>
+    <string name="phase_pre_workout">Get ready</string>
+    <string name="phase_cooldown">Cooldown</string>
+    <string name="phase_finished">Complete</string>
+    <string name="round_progress">Round %1$d / %2$d</string>
+    <string name="status_paused">Paused</string>
+    <string name="notification_channel_name">Workout</string>
+    <string name="notification_channel_description">Keeps the workout visible on your watch</string>
+    <string name="notification_timer_text">%1$s · Round %2$d / %3$d</string>
+</resources>

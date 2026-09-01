@@ -1,6 +1,6 @@
 # Circuits
 
-An Android interval training timer for structured workouts. Configure work intervals, cooldown periods, and repeat counts, then run through rounds with spoken cues and a persistent background timer.
+An Android interval training timer for structured workouts. Configure work intervals, cooldown periods, and repeat counts, then run through rounds with spoken cues and a persistent background timer. A companion **Wear OS** app mirrors the live workout on your watch.
 
 ## Screenshots
 
@@ -9,6 +9,8 @@ An Android interval training timer for structured workouts. Configure work inter
 | ![Main screen — configure interval, cooldown, and repeats](docs/screenshots/main-screen.jpg) | ![Load a saved circuit](docs/screenshots/load-interval-screen.jpg) | ![Active workout timer](docs/screenshots/running.jpg) |
 
 ## Features
+
+### Phone
 
 - **Interval setup** — Set interval length, cooldown length, and number of repeats with stepper controls.
 - **30-second pre-workout countdown** — A “Get ready” phase before the first work interval, with TTS and on-screen countdown.
@@ -20,6 +22,16 @@ An Android interval training timer for structured workouts. Configure work inter
 - **Text-to-speech** — Robotic voice announcements for pre-workout, work rounds, cooldown, and completion.
 - **Background timer** — Foreground service keeps the timer running when the app is in the background, with a progress notification.
 
+### Wear OS
+
+The watch app is a **remote mirror** of the phone timer — the phone runs the workout; the watch displays live state and sends controls back.
+
+- **Live mirror** — Shows the current phase, round, countdown, and paused state synced from the phone.
+- **Watch controls** — Pause, resume, and stop from the watch.
+- **Haptic cues** — Short vibrations on phase and round changes.
+- **Always visible during workouts** — Keeps the screen on while the app is open and uses an ongoing activity on the watch face when running in the background.
+- **Companion pairing** — Requires the phone app on a paired device; both apps share the same package name (`net.aucutt.circuits`) for Wear Data Layer sync.
+
 ## Tech stack
 
 | Layer | Technology |
@@ -29,7 +41,8 @@ An Android interval training timer for structured workouts. Configure work inter
 | Architecture | ViewModel + process-scoped timer engine |
 | Persistence | Room 3 |
 | Async | Kotlin Coroutines, StateFlow |
-| Min SDK | 26 (Android 8.0) |
+| Phone / watch sync | Google Play Services Wearable Data Layer |
+| Min SDK | 26 phone · 30 Wear OS |
 | Target SDK | 37 |
 
 ## Getting started
@@ -38,7 +51,8 @@ An Android interval training timer for structured workouts. Configure work inter
 
 1. Open the project folder in Android Studio.
 2. Sync Gradle when prompted.
-3. Run on an emulator or device (**Run ▶**).
+3. Run the **app** module on a phone emulator or device (**Run ▶**).
+4. Run the **wear** module on a Wear OS emulator or paired watch.
 
 ### Command line
 
@@ -54,36 +68,40 @@ export PATH="$JAVA_HOME/bin:$PATH"
 Then build and install:
 
 ```bash
+# Phone only
 ./gradlew :app:installDebug
+
+# Phone + Wear OS (paired watch required for sync)
+./gradlew :app:installDebug :wear:installDebug
 ```
 
 ## Running tests
 
 ```bash
-./gradlew :app:testDebugUnitTest
+./gradlew :app:testDebugUnitTest :core:testDebugUnitTest
 ```
 
-Unit tests cover timer phase transitions, pause/resume, config validation, and announcement flow.
+Unit tests cover timer phase transitions, pause/resume, config validation, announcement flow, and wear sync encoding.
 
 ## Project structure
 
 ```
-app/src/main/java/net/aucutt/circuits/
-├── MainActivity.kt              # Entry point
-├── data/                        # Room entities, DAO, database, sample presets
-├── service/
-│   └── CircuitTimerService.kt   # Foreground service + notifications
-├── timer/
-│   ├── CircuitTimerEngine.kt    # Process-scoped countdown state machine
-│   └── TimerAnnouncement.kt     # TTS announcement types
-├── tts/
-│   └── TtsSpeaker.kt            # Text-to-speech wrapper
-└── ui/
-    ├── theme/                   # Material 3 theme (icon-inspired palette)
-    └── timer/
-        ├── CircuitTimerScreen.kt
-        ├── CircuitTimerViewModel.kt
-        └── TimerModels.kt
+app/src/main/java/net/aucutt/circuits/     # Phone app
+├── MainActivity.kt
+├── data/                                    # Room entities, DAO, database, sample presets
+├── service/CircuitTimerService.kt           # Foreground service + notifications
+├── sync/                                    # Pushes timer state to watch, receives commands
+├── timer/                                   # Process-scoped countdown state machine
+├── tts/TtsSpeaker.kt
+└── ui/timer/                                # Compose UI
+
+wear/src/main/java/net/aucutt/circuits/wear/ # Wear OS mirror app
+├── MainActivity.kt
+├── service/WearWorkoutDisplayService.kt     # Ongoing activity + foreground display
+├── sync/                                    # Receives state, sends commands to phone
+└── ui/                                      # Mirror UI + compact controls
+
+core/src/main/java/net/aucutt/circuits/sync/ # Shared sync protocol (phone + watch)
 ```
 
 ## Timer flow

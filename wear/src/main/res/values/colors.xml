@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="ic_launcher_background">#0A0A0A</color>
+    <color name="circuit_cyan">#00E5FF</color>
+    <color name="runner_orange">#FF7043</color>
+    <color name="robot_silver">#B0BEC5</color>
+    <color name="robot_silver_dark">#78909C</color>
+</resources>
