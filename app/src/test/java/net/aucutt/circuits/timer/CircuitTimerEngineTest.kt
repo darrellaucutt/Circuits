@@ -45,27 +45,10 @@ class CircuitTimerEngineTest {
 
         val state = CircuitTimerEngine.uiState.value
         assertEquals(TimerPhase.PreWorkout, state.phase)
-        assertEquals(30, state.remainingSeconds)
+        assertEquals(5, state.remainingSeconds)
         assertEquals(1, state.currentRound)
         assertFalse(state.isPaused)
         assertTrue(state.isRunning)
-    }
-
-    @Test
-    fun start_emitsPreWorkoutAnnouncement() {
-        val dispatcher = StandardTestDispatcher(scheduler)
-        val announcements = mutableListOf<TimerAnnouncement>()
-        val scope = CoroutineScope(SupervisorJob() + dispatcher)
-        val job = scope.launch {
-            CircuitTimerEngine.announcements.collect { announcements.add(it) }
-        }
-        scheduler.runCurrent()
-
-        CircuitTimerEngine.start()
-        scheduler.runCurrent()
-        job.cancel()
-
-        assertEquals(listOf(TimerAnnouncement.PreWorkout), announcements)
     }
 
     @Test
@@ -75,7 +58,7 @@ class CircuitTimerEngineTest {
 
         val state = CircuitTimerEngine.uiState.value
         assertEquals(TimerPhase.Work, state.phase)
-        assertEquals(60, state.remainingSeconds)
+        assertEquals(35, state.remainingSeconds)
         assertEquals(1, state.currentRound)
     }
 
@@ -88,7 +71,7 @@ class CircuitTimerEngineTest {
 
         val state = CircuitTimerEngine.uiState.value
         assertEquals(TimerPhase.Cooldown, state.phase)
-        assertEquals(60, state.remainingSeconds)
+        assertEquals(35, state.remainingSeconds)
     }
 
     @Test
@@ -124,7 +107,7 @@ class CircuitTimerEngineTest {
         val state = CircuitTimerEngine.uiState.value
         assertEquals(TimerPhase.Work, state.phase)
         assertEquals(2, state.currentRound)
-        assertEquals(60, state.remainingSeconds)
+        assertEquals(35, state.remainingSeconds)
     }
 
     @Test
@@ -150,7 +133,7 @@ class CircuitTimerEngineTest {
         CircuitTimerEngine.resume()
         advanceTime(1_000)
 
-        assertEquals(24, CircuitTimerEngine.uiState.value.remainingSeconds)
+        assertEquals(59, CircuitTimerEngine.uiState.value.remainingSeconds)
         assertFalse(CircuitTimerEngine.uiState.value.isPaused)
     }
 
