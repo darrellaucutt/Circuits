@@ -3,6 +3,7 @@ package net.aucutt.circuits.wear.ui
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
@@ -15,10 +16,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.wear.compose.material3.Button
+import androidx.wear.compose.material3.CompactButton
 import androidx.wear.compose.material3.MaterialTheme
 import androidx.wear.compose.material3.Text
 import androidx.wear.compose.material3.TimeText
@@ -127,13 +129,13 @@ private fun RunningScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(12.dp),
+            .padding(horizontal = 8.dp, vertical = 4.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
         Text(
             text = phaseLabel,
-            style = MaterialTheme.typography.titleMedium,
+            style = MaterialTheme.typography.titleSmall,
             textAlign = TextAlign.Center,
         )
         if (state.phase != "PreWorkout") {
@@ -143,31 +145,47 @@ private fun RunningScreen(
                     state.currentRound,
                     state.repeats,
                 ),
-                style = MaterialTheme.typography.bodySmall,
+                style = MaterialTheme.typography.labelSmall,
                 textAlign = TextAlign.Center,
             )
         }
         Text(
             text = formatTime(state.remainingSeconds),
-            style = MaterialTheme.typography.displayMedium,
+            style = MaterialTheme.typography.displaySmall,
             textAlign = TextAlign.Center,
-            modifier = Modifier.padding(vertical = 8.dp),
+            modifier = Modifier.padding(vertical = 4.dp),
         )
         if (state.isPaused) {
             Text(
                 text = stringResource(R.string.status_paused),
                 style = MaterialTheme.typography.labelSmall,
             )
-            Button(onClick = onResume, modifier = Modifier.padding(top = 8.dp)) {
-                Text(stringResource(R.string.action_resume))
-            }
-        } else {
-            Button(onClick = onPause, modifier = Modifier.padding(top = 8.dp)) {
-                Text(stringResource(R.string.action_pause))
-            }
         }
-        Button(onClick = onStop, modifier = Modifier.padding(top = 4.dp)) {
-            Text(stringResource(R.string.action_stop))
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterHorizontally),
+            modifier = Modifier.padding(top = 4.dp),
+        ) {
+            if (state.isPaused) {
+                CompactButton(onClick = onResume) {
+                    Text(
+                        text = stringResource(R.string.action_resume),
+                        style = MaterialTheme.typography.labelSmall,
+                    )
+                }
+            } else {
+                CompactButton(onClick = onPause) {
+                    Text(
+                        text = stringResource(R.string.action_pause),
+                        style = MaterialTheme.typography.labelSmall,
+                    )
+                }
+            }
+            CompactButton(onClick = onStop) {
+                Text(
+                    text = stringResource(R.string.action_stop),
+                    style = MaterialTheme.typography.labelSmall,
+                )
+            }
         }
     }
 }
@@ -199,4 +217,31 @@ private fun formatTime(totalSeconds: Int): String {
     val minutes = totalSeconds / 60
     val seconds = totalSeconds % 60
     return "%d:%02d".format(minutes, seconds)
+}
+
+@Preview(
+    name = "Running",
+    widthDp = 224,
+    heightDp = 224,
+    showBackground = true,
+)
+@Composable
+private fun RunningScreenPreview() {
+    MaterialTheme {
+        RunningScreen(
+            state = SyncTimerState(
+                phase = "Work",
+                remainingSeconds = 42,
+                currentRound = 2,
+                isPaused = false,
+                intervalMinutes = 1,
+                cooldownMinutes = 1,
+                repeats = 5,
+                circuitName = "Morning HIIT",
+            ),
+            onPause = {},
+            onResume = {},
+            onStop = {},
+        )
+    }
 }
