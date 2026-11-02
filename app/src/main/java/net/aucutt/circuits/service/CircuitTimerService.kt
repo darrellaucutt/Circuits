@@ -137,18 +137,6 @@ class CircuitTimerService : Service() {
         }
     }
 
-    private fun getRandomCompleteMessage() : String {
-        //TODO make this more dynamic, read the number of platitudes from strings.xml
-        val rand = (0..4).random()
-        return when (rand)  {
-            0 -> getString(R.string.tts_circuit_complete_0)
-            1 -> getString(R.string.tts_circuit_complete_1)
-            2 -> getString(R.string.tts_circuit_complete_2)
-            3 -> getString(R.string.tts_circuit_complete_3)
-            else -> getString(R.string.tts_circuit_complete_4)
-        }
-    }
-
     private fun getRandomPlatitude() : String {
         val adapter = ArrayAdapter.createFromResource(
             this,
