@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <array name = "platitudes">
+        <item>Circuit complete. Nice work!</item>
+        <item>Workout complete. Great Job!</item>
+        <item>YYou did it! You rock!</item>
+        <item>Activity complete. That is great!</item>
+        <item>Intervals complete. You are awesome.</item>
+    </array>
+</resources>
